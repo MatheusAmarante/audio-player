@@ -39,7 +39,6 @@ public class MainActivity extends AppCompatActivity implements MusicService.Musi
     private List<AudioFile> allAudio = new ArrayList<>();
     private List<AudioFile> filteredAudio = new ArrayList<>();
 
-    // UI
     private RecyclerView recyclerView;
     private EditText searchInput;
     private View miniPlayer;
@@ -81,7 +80,6 @@ public class MainActivity extends AppCompatActivity implements MusicService.Musi
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        // Bind views
         recyclerView = findViewById(R.id.recycler_view);
         searchInput = findViewById(R.id.search_input);
         miniPlayer = findViewById(R.id.mini_player);
@@ -101,7 +99,6 @@ public class MainActivity extends AppCompatActivity implements MusicService.Musi
         sleepPanel = findViewById(R.id.sleep_panel);
         sleepCountdown = findViewById(R.id.sleep_countdown);
 
-        // RecyclerView
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         adapter = new AudioAdapter(filteredAudio, position -> {
             if (musicService != null) {
@@ -111,14 +108,12 @@ public class MainActivity extends AppCompatActivity implements MusicService.Musi
         });
         recyclerView.setAdapter(adapter);
 
-        // Search
         searchInput.addTextChangedListener(new TextWatcher() {
             @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
             @Override public void onTextChanged(CharSequence s, int start, int before, int count) { filterAudio(s.toString()); }
             @Override public void afterTextChanged(Editable s) {}
         });
 
-        // Controls
         btnPlay.setOnClickListener(v -> { if (musicService != null) musicService.togglePlayPause(); });
         btnPrev.setOnClickListener(v -> { if (musicService != null) musicService.previous(); });
         btnNext.setOnClickListener(v -> { if (musicService != null) musicService.next(); });
@@ -136,16 +131,15 @@ public class MainActivity extends AppCompatActivity implements MusicService.Musi
                 int mode = (musicService.getRepeatMode() + 1) % 3;
                 musicService.setRepeatMode(mode);
                 switch (mode) {
-                    case 0: btnRepeat.setColorFilter(0xFF8b8b9e); btnRepeat.setAlpha(1.0f); break;
-                    case 1: btnRepeat.setColorFilter(0xFF1e40af); btnRepeat.setAlpha(1.0f); btnRepeat.setImageResource(android.R.drawable.ic_menu_revert); break;
-                    case 2: btnRepeat.setColorFilter(0xFF1e40af); btnRepeat.setAlpha(1.0f); btnRepeat.setImageResource(android.R.drawable.ic_popup_sync); break;
+                    case 0: btnRepeat.setColorFilter(0xFF8b8b9e); break;
+                    case 1: btnRepeat.setColorFilter(0xFF1e40af); break;
+                    case 2: btnRepeat.setColorFilter(0xFF1e40af); break;
                 }
             }
         });
 
         btnSpeed.setOnClickListener(v -> speedPanel.setVisibility(speedPanel.getVisibility() == View.VISIBLE ? View.GONE : View.VISIBLE));
 
-        // Speed buttons
         int[] speedBtnIds = {R.id.speed_05, R.id.speed_075, R.id.speed_1, R.id.speed_125, R.id.speed_15, R.id.speed_2};
         float[] speeds = {0.5f, 0.75f, 1.0f, 1.25f, 1.5f, 2.0f};
         for (int i = 0; i < speedBtnIds.length; i++) {
@@ -157,7 +151,6 @@ public class MainActivity extends AppCompatActivity implements MusicService.Musi
             });
         }
 
-        // Sleep timer
         int[] sleepBtnIds = {R.id.sleep_15, R.id.sleep_30, R.id.sleep_60, R.id.sleep_off};
         int[] sleepMins = {15, 30, 60, 0};
         for (int i = 0; i < sleepBtnIds.length; i++) {
@@ -165,7 +158,6 @@ public class MainActivity extends AppCompatActivity implements MusicService.Musi
             findViewById(sleepBtnIds[i]).setOnClickListener(v -> setSleepTimer(mins));
         }
 
-        // SeekBar
         seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 if (fromUser && musicService != null) {
@@ -177,7 +169,6 @@ public class MainActivity extends AppCompatActivity implements MusicService.Musi
             @Override public void onStopTrackingTouch(SeekBar seekBar) { isUserSeeking = false; }
         });
 
-        // Request permissions
         requestPermissions();
     }
 
@@ -192,7 +183,9 @@ public class MainActivity extends AppCompatActivity implements MusicService.Musi
     protected void onStop() {
         super.onStop();
         if (serviceBound) {
-            unbindService(serviceConnection);
+            try {
+                unbindService(serviceConnection);
+            } catch (Exception ignored) {}
             serviceBound = false;
         }
         stopProgressUpdates();
@@ -207,10 +200,9 @@ public class MainActivity extends AppCompatActivity implements MusicService.Musi
 
     private void requestPermissions() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_AUDIO) != PackageManager.PERMISSION_GRANTED ||
-                ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_AUDIO) != PackageManager.PERMISSION_GRANTED) {
                 ActivityCompat.requestPermissions(this,
-                    new String[]{Manifest.permission.READ_MEDIA_AUDIO, Manifest.permission.POST_NOTIFICATIONS}, PERMISSION_REQUEST);
+                    new String[]{Manifest.permission.READ_MEDIA_AUDIO}, PERMISSION_REQUEST);
             } else {
                 loadAudio();
             }
@@ -237,18 +229,23 @@ public class MainActivity extends AppCompatActivity implements MusicService.Musi
 
     private void loadAudio() {
         new Thread(() -> {
-            allAudio = AudioLoader.loadAllAudio(this);
-            filteredAudio = new ArrayList<>(allAudio);
-            runOnUiThread(() -> {
-                adapter = new AudioAdapter(filteredAudio, position -> {
-                    if (musicService != null) {
-                        musicService.setPlaylist(filteredAudio, position);
-                        updateMiniPlayer();
-                    }
+            try {
+                allAudio = AudioLoader.loadAllAudio(this);
+                filteredAudio = new ArrayList<>(allAudio);
+                runOnUiThread(() -> {
+                    adapter = new AudioAdapter(filteredAudio, position -> {
+                        if (musicService != null) {
+                            musicService.setPlaylist(filteredAudio, position);
+                            updateMiniPlayer();
+                        }
+                    });
+                    recyclerView.setAdapter(adapter);
+                    updateMiniPlayer();
                 });
-                recyclerView.setAdapter(adapter);
-                updateMiniPlayer();
-            });
+            } catch (Exception e) {
+                e.printStackTrace();
+                runOnUiThread(() -> Toast.makeText(this, "Error loading audio files", Toast.LENGTH_SHORT).show());
+            }
         }).start();
     }
 
@@ -260,7 +257,9 @@ public class MainActivity extends AppCompatActivity implements MusicService.Musi
         } else {
             String q = query.toLowerCase();
             for (AudioFile af : allAudio) {
-                if (af.title.toLowerCase().contains(q) || af.getArtistOrAlbum().toLowerCase().contains(q)) {
+                String title = af.getSafeTitle().toLowerCase();
+                String artist = af.getArtistOrAlbum().toLowerCase();
+                if (title.contains(q) || artist.contains(q)) {
                     filteredAudio.add(af);
                 }
             }
@@ -268,21 +267,19 @@ public class MainActivity extends AppCompatActivity implements MusicService.Musi
         adapter.notifyDataSetChanged();
     }
 
-    // ===== Mini Player =====
-
     private void updateMiniPlayer() {
         if (musicService == null) return;
         AudioFile track = musicService.getCurrentTrack();
         if (track != null) {
             miniPlayer.setVisibility(View.VISIBLE);
-            miniTitle.setText(track.title);
+            miniTitle.setText(track.getSafeTitle());
             miniArtist.setText(track.getArtistOrAlbum());
             btnPlay.setImageResource(musicService.isPlaying() ? android.R.drawable.ic_media_pause : android.R.drawable.ic_media_play);
-            seekBar.setMax(musicService.getDuration());
-            totalTimeText.setText(formatTime(musicService.getDuration()));
+            int dur = musicService.getDuration();
+            seekBar.setMax(dur > 0 ? dur : 100);
+            totalTimeText.setText(formatTime(dur));
             speedLabel.setText(String.format(Locale.US, "%.2fx", musicService.getSpeed()));
 
-            // Highlight current track
             int idx = musicService.getCurrentIndex();
             if (idx >= 0 && idx < filteredAudio.size()) {
                 adapter.setSelectedPosition(idx);
@@ -311,8 +308,6 @@ public class MainActivity extends AppCompatActivity implements MusicService.Musi
     private void stopProgressUpdates() {
         handler.removeCallbacks(progressRunnable);
     }
-
-    // ===== Sleep Timer =====
 
     private void setSleepTimer(int minutes) {
         sleepHandler.removeCallbacks(sleepRunnable);
@@ -344,8 +339,6 @@ public class MainActivity extends AppCompatActivity implements MusicService.Musi
         sleepHandler.postDelayed(sleepRunnable, 1000);
     }
 
-    // ===== Callbacks =====
-
     @Override
     public void onTrackChanged(AudioFile track) {
         runOnUiThread(this::updateMiniPlayer);
@@ -358,14 +351,8 @@ public class MainActivity extends AppCompatActivity implements MusicService.Musi
         });
     }
 
-    @Override
-    public void onProgressUpdate(int currentMs, int totalMs) {
-        // Not used — we poll via handler
-    }
-
-    // ===== Helpers =====
-
     private String formatTime(int ms) {
+        if (ms <= 0) return "00:00";
         int secs = ms / 1000;
         int h = secs / 3600;
         int m = (secs % 3600) / 60;

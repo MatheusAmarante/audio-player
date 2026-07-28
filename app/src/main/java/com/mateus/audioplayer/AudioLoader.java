@@ -27,27 +27,49 @@ public class AudioLoader {
         };
         String sortOrder = MediaStore.Audio.Media.TITLE + " ASC";
 
-        Cursor cursor = cr.query(uri, projection, null, null, sortOrder);
-        if (cursor != null) {
-            while (cursor.moveToNext()) {
-                AudioFile af = new AudioFile();
-                af.id = cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media._ID));
-                af.title = cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.TITLE));
-                af.artist = cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ARTIST));
-                af.album = cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM));
-                af.duration = cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION));
-                af.displayName = cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DISPLAY_NAME));
-                af.size = cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.SIZE));
+        Cursor cursor = null;
+        try {
+            cursor = cr.query(uri, projection, null, null, sortOrder);
+            if (cursor != null) {
+                int idCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media._ID);
+                int titleCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.TITLE);
+                int artistCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ARTIST);
+                int albumCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM);
+                int durationCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION);
+                int dataCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA);
+                int displayCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DISPLAY_NAME);
+                int sizeCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.SIZE);
 
-                String data = cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA));
-                af.uri = Uri.parse(data != null ? data : "");
+                while (cursor.moveToNext()) {
+                    long duration = cursor.getLong(durationCol);
+                    if (duration <= 0) continue;
 
-                // Include all audio files (mp3, webm, ogg, wav, flac, m4a, etc.)
-                if (af.duration > 0) {
+                    AudioFile af = new AudioFile();
+                    af.id = cursor.getLong(idCol);
+                    af.title = cursor.getString(titleCol);
+                    af.artist = cursor.getString(artistCol);
+                    af.album = cursor.getString(albumCol);
+                    af.duration = duration;
+                    af.displayName = cursor.getString(displayCol);
+                    af.size = cursor.getLong(sizeCol);
+
+                    String data = cursor.getString(dataCol);
+                    if (data != null && !data.isEmpty()) {
+                        af.uri = Uri.parse(data);
+                    } else {
+                        // Fallback: use content URI
+                        af.uri = Uri.withAppendedPath(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, String.valueOf(af.id));
+                    }
+
                     list.add(af);
                 }
             }
-            cursor.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            if (cursor != null) {
+                try { cursor.close(); } catch (Exception ignored) {}
+            }
         }
         return list;
     }

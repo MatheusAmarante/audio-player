@@ -21,7 +21,6 @@ import android.support.v4.media.session.PlaybackStateCompat;
 import androidx.core.app.NotificationCompat;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 
@@ -35,17 +34,15 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
     private List<AudioFile> playlist = new ArrayList<>();
     private int currentIndex = -1;
     private boolean isShuffle = false;
-    private int repeatMode = 0; // 0=none, 1=repeat one, 2=repeat all
+    private int repeatMode = 0;
     private float playbackSpeed = 1.0f;
     private MediaSessionCompat mediaSession;
-    private PlaybackStateCompat.Builder stateBuilder;
     private boolean isPreparing = false;
+    private boolean notificationReceiverRegistered = false;
 
-    // Callback interface
     public interface MusicCallback {
         void onTrackChanged(AudioFile track);
         void onPlaybackStateChanged(boolean isPlaying);
-        void onProgressUpdate(int currentMs, int totalMs);
     }
 
     private MusicCallback callback;
@@ -65,17 +62,35 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
         createNotificationChannel();
         initMediaPlayer();
         initMediaSession();
-        registerReceiver(notificationReceiver, new IntentFilter("com.mateus.audioplayer.NOTIFICATION_ACTION"));
+        try {
+            registerReceiver(notificationReceiver, new IntentFilter("com.mateus.audioplayer.NOTIFICATION_ACTION"), Context.RECEIVER_NOT_EXPORTED);
+            notificationReceiverRegistered = true;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
     public void onDestroy() {
-        unregisterReceiver(notificationReceiver);
-        if (mediaPlayer != null) {
-            mediaPlayer.release();
-            mediaPlayer = null;
-        }
-        if (mediaSession != null) mediaSession.release();
+        try {
+            if (notificationReceiverRegistered) {
+                unregisterReceiver(notificationReceiver);
+                notificationReceiverRegistered = false;
+            }
+        } catch (Exception ignored) {}
+        try {
+            if (mediaPlayer != null) {
+                if (mediaPlayer.isPlaying()) mediaPlayer.stop();
+                mediaPlayer.release();
+                mediaPlayer = null;
+            }
+        } catch (Exception ignored) {}
+        try {
+            if (mediaSession != null) {
+                mediaSession.release();
+                mediaSession = null;
+            }
+        } catch (Exception ignored) {}
         super.onDestroy();
     }
 
@@ -94,57 +109,78 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
     }
 
     private void initMediaPlayer() {
-        mediaPlayer = new MediaPlayer();
-        mediaPlayer.setWakeMode(getApplicationContext(), PowerManager.PARTIAL_WAKE_LOCK);
-        mediaPlayer.setAudioAttributes(new AudioAttributes.Builder()
-            .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
-            .setUsage(AudioAttributes.USAGE_MEDIA)
-            .build());
-        mediaPlayer.setOnCompletionListener(this);
-        mediaPlayer.setOnPreparedListener(this);
-        mediaPlayer.setOnErrorListener(this);
+        try {
+            mediaPlayer = new MediaPlayer();
+            mediaPlayer.setWakeMode(getApplicationContext(), PowerManager.PARTIAL_WAKE_LOCK);
+            mediaPlayer.setAudioAttributes(new AudioAttributes.Builder()
+                .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                .setUsage(AudioAttributes.USAGE_MEDIA)
+                .build());
+            mediaPlayer.setOnCompletionListener(this);
+            mediaPlayer.setOnPreparedListener(this);
+            mediaPlayer.setOnErrorListener(this);
+        } catch (Exception e) {
+            e.printStackTrace();
+            mediaPlayer = null;
+        }
     }
 
     private void initMediaSession() {
-        mediaSession = new MediaSessionCompat(this, "AudioPlayer");
-        mediaSession.setFlags(MediaSessionCompat.FLAG_HANDLES_MEDIA_BUTTONS | MediaSessionCompat.FLAG_HANDLES_TRANSPORT_CONTROLS);
-        stateBuilder = new PlaybackStateCompat.Builder()
-            .setActions(PlaybackStateCompat.ACTION_PLAY | PlaybackStateCompat.ACTION_PAUSE |
-                       PlaybackStateCompat.ACTION_SKIP_TO_NEXT | PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS |
-                       PlaybackStateCompat.ACTION_SEEK_TO);
-        mediaSession.setPlaybackState(stateBuilder.build());
-        mediaSession.setActive(true);
+        try {
+            mediaSession = new MediaSessionCompat(this, "AudioPlayer");
+            mediaSession.setFlags(MediaSessionCompat.FLAG_HANDLES_MEDIA_BUTTONS | MediaSessionCompat.FLAG_HANDLES_TRANSPORT_CONTROLS);
+            PlaybackStateCompat state = new PlaybackStateCompat.Builder()
+                .setActions(PlaybackStateCompat.ACTION_PLAY | PlaybackStateCompat.ACTION_PAUSE |
+                           PlaybackStateCompat.ACTION_SKIP_TO_NEXT | PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS |
+                           PlaybackStateCompat.ACTION_SEEK_TO)
+                .build();
+            mediaSession.setPlaybackState(state);
+            mediaSession.setActive(true);
+        } catch (Exception e) {
+            e.printStackTrace();
+            mediaSession = null;
+        }
     }
 
     private void createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            NotificationChannel channel = new NotificationChannel(
-                CHANNEL_ID, "Audio Player", NotificationManager.IMPORTANCE_LOW);
-            channel.setDescription("Audio playback controls");
-            channel.setShowBadge(false);
-            NotificationManager nm = getSystemService(NotificationManager.class);
-            if (nm != null) nm.createNotificationChannel(channel);
+            try {
+                NotificationChannel channel = new NotificationChannel(
+                    CHANNEL_ID, "Audio Player", NotificationManager.IMPORTANCE_LOW);
+                channel.setDescription("Audio playback controls");
+                channel.setShowBadge(false);
+                NotificationManager nm = getSystemService(NotificationManager.class);
+                if (nm != null) nm.createNotificationChannel(channel);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
     }
 
     // ===== Playback Controls =====
 
     public void setPlaylist(List<AudioFile> list, int startIndex) {
+        if (list == null || list.isEmpty()) return;
         this.playlist = new ArrayList<>(list);
-        this.currentIndex = startIndex;
+        this.currentIndex = Math.max(0, Math.min(startIndex, list.size() - 1));
         playTrack();
     }
 
     public void playTrack() {
+        if (mediaPlayer == null) return;
         if (currentIndex < 0 || currentIndex >= playlist.size()) return;
         AudioFile track = playlist.get(currentIndex);
+        if (track == null || track.uri == null) {
+            next();
+            return;
+        }
         try {
             mediaPlayer.reset();
-            mediaPlayer.setDataSource(this, Uri.parse(track.uri.toString()));
+            mediaPlayer.setDataSource(this, track.uri);
             mediaPlayer.prepareAsync();
             isPreparing = true;
             if (callback != null) callback.onTrackChanged(track);
-        } catch (IOException e) {
+        } catch (Exception e) {
             e.printStackTrace();
             next();
         }
@@ -153,11 +189,21 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
     @Override
     public void onPrepared(MediaPlayer mp) {
         isPreparing = false;
-        mp.setPlaybackParams(mp.getPlaybackParams().setSpeed(playbackSpeed));
+        try {
+            mp.setPlaybackParams(mp.getPlaybackParams().setSpeed(playbackSpeed));
+        } catch (Exception ignored) {}
         mp.start();
         updateNotification();
         if (callback != null) callback.onPlaybackStateChanged(true);
-        startForeground(NOTIFICATION_ID, buildNotification());
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                startForeground(NOTIFICATION_ID, buildNotification(), android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK);
+            } else {
+                startForeground(NOTIFICATION_ID, buildNotification());
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
@@ -170,7 +216,6 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
     @Override
     public void onCompletion(MediaPlayer mp) {
         if (repeatMode == 1) {
-            // Repeat one
             playTrack();
         } else if (repeatMode == 2 || isShuffle) {
             next();
@@ -185,7 +230,8 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
     }
 
     public void play() {
-        if (mediaPlayer != null && !mediaPlayer.isPlaying() && !isPreparing) {
+        if (mediaPlayer == null) return;
+        if (!mediaPlayer.isPlaying() && !isPreparing) {
             if (mediaPlayer.getCurrentPosition() > 0) {
                 mediaPlayer.start();
             } else if (currentIndex >= 0) {
@@ -220,7 +266,7 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
 
     public void previous() {
         if (playlist.isEmpty()) return;
-        if (mediaPlayer.getCurrentPosition() > 3000) {
+        if (mediaPlayer != null && mediaPlayer.getCurrentPosition() > 3000) {
             seekTo(0);
         } else {
             currentIndex = currentIndex > 0 ? currentIndex - 1 : playlist.size() - 1;
@@ -229,22 +275,24 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
     }
 
     public void seekTo(int ms) {
-        if (mediaPlayer != null) mediaPlayer.seekTo(ms);
+        if (mediaPlayer != null) {
+            try { mediaPlayer.seekTo(ms); } catch (Exception ignored) {}
+        }
     }
 
     public void setSpeed(float speed) {
         this.playbackSpeed = speed;
-        if (mediaPlayer != null && mediaPlayer.isPlaying()) {
-            mediaPlayer.setPlaybackParams(mediaPlayer.getPlaybackParams().setSpeed(speed));
+        if (mediaPlayer != null) {
+            try {
+                mediaPlayer.setPlaybackParams(mediaPlayer.getPlaybackParams().setSpeed(speed));
+            } catch (Exception ignored) {}
         }
     }
 
     public void setShuffle(boolean shuffle) { this.isShuffle = shuffle; }
     public boolean isShuffle() { return isShuffle; }
-
     public void setRepeatMode(int mode) { this.repeatMode = mode; }
     public int getRepeatMode() { return repeatMode; }
-
     public boolean isPlaying() { return mediaPlayer != null && mediaPlayer.isPlaying(); }
     public int getCurrentPosition() { return mediaPlayer != null ? mediaPlayer.getCurrentPosition() : 0; }
     public int getDuration() { return mediaPlayer != null ? mediaPlayer.getDuration() : 0; }
@@ -257,8 +305,8 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
 
     private Notification buildNotification() {
         AudioFile track = getCurrentTrack();
-        String title = track != null ? track.title : "No track";
-        String artist = track != null ? track.getArtistOrAlbum() : "";
+        String title = track != null ? track.title : "Audio Player";
+        String artist = track != null ? track.getArtistOrAlbum() : "No track selected";
 
         Intent intent = new Intent(this, MainActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
@@ -270,13 +318,20 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
             .setSmallIcon(android.R.drawable.ic_media_play)
             .setContentIntent(contentIntent)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-            .setStyle(new androidx.media.app.NotificationCompat.MediaStyle()
-                .setMediaSession(mediaSession.getSessionToken())
-                .setShowActionsInCompactView(0, 1, 2))
+            .setOngoing(isPlaying())
             .addAction(android.R.drawable.ic_media_previous, "Prev", buildPendingIntent("ACTION_PREV"))
             .addAction(isPlaying() ? android.R.drawable.ic_media_pause : android.R.drawable.ic_media_play,
                        "Play", buildPendingIntent("ACTION_PLAY_PAUSE"))
             .addAction(android.R.drawable.ic_media_next, "Next", buildPendingIntent("ACTION_NEXT"));
+
+        // MediaStyle only if session is valid
+        if (mediaSession != null) {
+            try {
+                builder.setStyle(new androidx.media.app.NotificationCompat.MediaStyle()
+                    .setMediaSession(mediaSession.getSessionToken())
+                    .setShowActionsInCompactView(0, 1, 2));
+            } catch (Exception ignored) {}
+        }
 
         return builder.build();
     }
@@ -288,13 +343,16 @@ public class MusicService extends Service implements MediaPlayer.OnCompletionLis
     }
 
     private void updateNotification() {
-        NotificationManager nm = getSystemService(NotificationManager.class);
-        if (nm != null) nm.notify(NOTIFICATION_ID, buildNotification());
+        try {
+            NotificationManager nm = getSystemService(NotificationManager.class);
+            if (nm != null) nm.notify(NOTIFICATION_ID, buildNotification());
+        } catch (Exception ignored) {}
     }
 
     private final BroadcastReceiver notificationReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
+            if (intent == null) return;
             String action = intent.getAction();
             if (action == null) return;
             switch (action) {

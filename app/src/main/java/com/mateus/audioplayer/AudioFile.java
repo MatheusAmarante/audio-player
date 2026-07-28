@@ -26,4 +26,10 @@ public class AudioFile {
         if (album != null && !album.isEmpty() && !album.equals("<unknown>")) return album;
         return "Unknown";
     }
+
+    public String getSafeTitle() {
+        if (title != null && !title.isEmpty()) return title;
+        if (displayName != null && !displayName.isEmpty()) return displayName;
+        return "Unknown";
+    }
 }
