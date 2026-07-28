@@ -167,8 +167,6 @@
             android:layout_height="wrap_content"
             android:background="#161b22"
             app:menu="@menu/bottom_nav_menu"
-            app:labelVisibilityMode="labeled"
-            app:itemIconTint="@color/bottom_nav_tint"
-            app:itemTextColor="@color/bottom_nav_tint" />
+            app:labelVisibilityMode="labeled" />
     </LinearLayout>
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
