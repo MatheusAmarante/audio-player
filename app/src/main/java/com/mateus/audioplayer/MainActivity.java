@@ -1,15 +1,13 @@
 package com.mateus.audioplayer;
 
 import android.Manifest;
-import android.content.ComponentName;
-import android.content.Context;
-import android.content.Intent;
-import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
+import android.media.AudioAttributes;
+import android.media.MediaPlayer;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
-import android.os.IBinder;
 import android.os.Looper;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -28,22 +26,27 @@ import androidx.recyclerview.widget.RecyclerView;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Random;
 
-public class MainActivity extends AppCompatActivity implements MusicService.MusicCallback {
+public class MainActivity extends AppCompatActivity {
 
     private static final int PERMISSION_REQUEST = 100;
 
-    private MusicService musicService;
-    private boolean serviceBound = false;
-    private AudioAdapter adapter;
+    private MediaPlayer mediaPlayer;
     private List<AudioFile> allAudio = new ArrayList<>();
     private List<AudioFile> filteredAudio = new ArrayList<>();
+    private AudioAdapter adapter;
+    private int currentIndex = -1;
+    private boolean isShuffle = false;
+    private int repeatMode = 0;
+    private float speed = 1.0f;
+    private boolean isUserSeeking = false;
 
     private RecyclerView recyclerView;
     private EditText searchInput;
     private View miniPlayer;
     private TextView miniTitle, miniArtist, currentTimeText, totalTimeText;
-    private ImageButton btnPlay, btnPrev, btnNext, btnShuffle, btnRepeat, btnSpeed;
+    private ImageButton btnPlay, btnPrev, btnNext, btnShuffle, btnRepeat;
     private SeekBar seekBar;
     private TextView speedLabel;
     private View speedPanel;
@@ -52,28 +55,8 @@ public class MainActivity extends AppCompatActivity implements MusicService.Musi
 
     private Handler handler = new Handler(Looper.getMainLooper());
     private Runnable progressRunnable;
-    private boolean isUserSeeking = false;
     private int sleepEndSeconds = -1;
     private Handler sleepHandler = new Handler(Looper.getMainLooper());
-    private Runnable sleepRunnable;
-
-    private final ServiceConnection serviceConnection = new ServiceConnection() {
-        @Override
-        public void onServiceConnected(ComponentName name, IBinder service) {
-            MusicService.MusicBinder binder = (MusicService.MusicBinder) service;
-            musicService = binder.getService();
-            musicService.setCallback(MainActivity.this);
-            serviceBound = true;
-            updateMiniPlayer();
-            startProgressUpdates();
-        }
-
-        @Override
-        public void onServiceDisconnected(ComponentName name) {
-            musicService = null;
-            serviceBound = false;
-        }
-    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -92,7 +75,6 @@ public class MainActivity extends AppCompatActivity implements MusicService.Musi
         btnNext = findViewById(R.id.btn_next);
         btnShuffle = findViewById(R.id.btn_shuffle);
         btnRepeat = findViewById(R.id.btn_repeat);
-        btnSpeed = findViewById(R.id.btn_speed);
         seekBar = findViewById(R.id.seek_bar);
         speedLabel = findViewById(R.id.speed_label);
         speedPanel = findViewById(R.id.speed_panel);
@@ -100,130 +82,98 @@ public class MainActivity extends AppCompatActivity implements MusicService.Musi
         sleepCountdown = findViewById(R.id.sleep_countdown);
 
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
-        adapter = new AudioAdapter(filteredAudio, position -> {
-            if (musicService != null) {
-                musicService.setPlaylist(filteredAudio, position);
-                updateMiniPlayer();
-            }
-        });
+        adapter = new AudioAdapter(filteredAudio, this::playAtIndex);
         recyclerView.setAdapter(adapter);
 
         searchInput.addTextChangedListener(new TextWatcher() {
-            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-            @Override public void onTextChanged(CharSequence s, int start, int before, int count) { filterAudio(s.toString()); }
+            @Override public void beforeTextChanged(CharSequence s, int a, int b, int c) {}
+            @Override public void onTextChanged(CharSequence s, int a, int b, int c) { filter(s.toString()); }
             @Override public void afterTextChanged(Editable s) {}
         });
 
-        btnPlay.setOnClickListener(v -> { if (musicService != null) musicService.togglePlayPause(); });
-        btnPrev.setOnClickListener(v -> { if (musicService != null) musicService.previous(); });
-        btnNext.setOnClickListener(v -> { if (musicService != null) musicService.next(); });
+        btnPlay.setOnClickListener(v -> togglePlayPause());
+        btnPrev.setOnClickListener(v -> previous());
+        btnNext.setOnClickListener(v -> next());
 
         btnShuffle.setOnClickListener(v -> {
-            if (musicService != null) {
-                boolean newState = !musicService.isShuffle();
-                musicService.setShuffle(newState);
-                btnShuffle.setColorFilter(newState ? 0xFF1e40af : 0xFF8b8b9e);
-            }
+            isShuffle = !isShuffle;
+            btnShuffle.setColorFilter(isShuffle ? 0xFF1e40af : 0xFF8b8b9e);
         });
 
         btnRepeat.setOnClickListener(v -> {
-            if (musicService != null) {
-                int mode = (musicService.getRepeatMode() + 1) % 3;
-                musicService.setRepeatMode(mode);
-                switch (mode) {
-                    case 0: btnRepeat.setColorFilter(0xFF8b8b9e); break;
-                    case 1: btnRepeat.setColorFilter(0xFF1e40af); break;
-                    case 2: btnRepeat.setColorFilter(0xFF1e40af); break;
-                }
-            }
+            repeatMode = (repeatMode + 1) % 3;
+            btnRepeat.setColorFilter(repeatMode > 0 ? 0xFF1e40af : 0xFF8b8b9e);
         });
 
-        btnSpeed.setOnClickListener(v -> speedPanel.setVisibility(speedPanel.getVisibility() == View.VISIBLE ? View.GONE : View.VISIBLE));
+        findViewById(R.id.btn_speed).setOnClickListener(v ->
+            speedPanel.setVisibility(speedPanel.getVisibility() == View.VISIBLE ? View.GONE : View.VISIBLE));
 
-        int[] speedBtnIds = {R.id.speed_05, R.id.speed_075, R.id.speed_1, R.id.speed_125, R.id.speed_15, R.id.speed_2};
+        int[] speedIds = {R.id.speed_05, R.id.speed_075, R.id.speed_1, R.id.speed_125, R.id.speed_15, R.id.speed_2};
         float[] speeds = {0.5f, 0.75f, 1.0f, 1.25f, 1.5f, 2.0f};
-        for (int i = 0; i < speedBtnIds.length; i++) {
-            final float spd = speeds[i];
-            findViewById(speedBtnIds[i]).setOnClickListener(v -> {
-                if (musicService != null) musicService.setSpeed(spd);
-                speedLabel.setText(String.format(Locale.US, "%.2fx", spd));
+        for (int i = 0; i < speedIds.length; i++) {
+            final float s = speeds[i];
+            findViewById(speedIds[i]).setOnClickListener(v -> {
+                speed = s;
+                if (mediaPlayer != null) {
+                    try { mediaPlayer.setPlaybackParams(mediaPlayer.getPlaybackParams().setSpeed(s)); } catch (Exception ignored) {}
+                }
+                speedLabel.setText(String.format(Locale.US, "%.2fx", s));
                 speedPanel.setVisibility(View.GONE);
             });
         }
 
-        int[] sleepBtnIds = {R.id.sleep_15, R.id.sleep_30, R.id.sleep_60, R.id.sleep_off};
+        int[] sleepIds = {R.id.sleep_15, R.id.sleep_30, R.id.sleep_60, R.id.sleep_off};
         int[] sleepMins = {15, 30, 60, 0};
-        for (int i = 0; i < sleepBtnIds.length; i++) {
+        for (int i = 0; i < sleepIds.length; i++) {
             final int mins = sleepMins[i];
-            findViewById(sleepBtnIds[i]).setOnClickListener(v -> setSleepTimer(mins));
+            findViewById(sleepIds[i]).setOnClickListener(v -> setSleepTimer(mins));
         }
 
         seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            @Override public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                if (fromUser && musicService != null) {
-                    musicService.seekTo(progress);
-                    currentTimeText.setText(formatTime(progress));
+            @Override public void onProgressChanged(SeekBar sb, int p, boolean fromUser) {
+                if (fromUser && mediaPlayer != null) {
+                    mediaPlayer.seekTo(p);
+                    currentTimeText.setText(formatTime(p));
                 }
             }
-            @Override public void onStartTrackingTouch(SeekBar seekBar) { isUserSeeking = true; }
-            @Override public void onStopTrackingTouch(SeekBar seekBar) { isUserSeeking = false; }
+            @Override public void onStartTrackingTouch(SeekBar sb) { isUserSeeking = true; }
+            @Override public void onStopTrackingTouch(SeekBar sb) { isUserSeeking = false; }
         });
 
         requestPermissions();
     }
 
     @Override
-    protected void onStart() {
-        super.onStart();
-        Intent intent = new Intent(this, MusicService.class);
-        bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE);
-    }
-
-    @Override
-    protected void onStop() {
-        super.onStop();
-        if (serviceBound) {
-            try {
-                unbindService(serviceConnection);
-            } catch (Exception ignored) {}
-            serviceBound = false;
-        }
-        stopProgressUpdates();
-    }
-
-    @Override
     protected void onDestroy() {
         super.onDestroy();
         handler.removeCallbacks(progressRunnable);
-        sleepHandler.removeCallbacks(sleepRunnable);
+        sleepHandler.removeCallbacksAndMessages(null);
+        if (mediaPlayer != null) {
+            try {
+                if (mediaPlayer.isPlaying()) mediaPlayer.stop();
+                mediaPlayer.release();
+            } catch (Exception ignored) {}
+            mediaPlayer = null;
+        }
     }
 
     private void requestPermissions() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_AUDIO) != PackageManager.PERMISSION_GRANTED) {
-                ActivityCompat.requestPermissions(this,
-                    new String[]{Manifest.permission.READ_MEDIA_AUDIO}, PERMISSION_REQUEST);
-            } else {
-                loadAudio();
-            }
+        String perm = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+            ? Manifest.permission.READ_MEDIA_AUDIO
+            : Manifest.permission.READ_EXTERNAL_STORAGE;
+
+        if (ContextCompat.checkSelfPermission(this, perm) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{perm}, PERMISSION_REQUEST);
         } else {
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-                ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, PERMISSION_REQUEST);
-            } else {
-                loadAudio();
-            }
+            loadAudio();
         }
     }
 
     @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == PERMISSION_REQUEST) {
-            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                loadAudio();
-            } else {
-                Toast.makeText(this, "Permission needed to load audio files", Toast.LENGTH_LONG).show();
-            }
+    public void onRequestPermissionsResult(int code, @NonNull String[] perms, @NonNull int[] results) {
+        super.onRequestPermissionsResult(code, perms, results);
+        if (code == PERMISSION_REQUEST && results.length > 0 && results[0] == PackageManager.PERMISSION_GRANTED) {
+            loadAudio();
         }
     }
 
@@ -233,33 +183,23 @@ public class MainActivity extends AppCompatActivity implements MusicService.Musi
                 allAudio = AudioLoader.loadAllAudio(this);
                 filteredAudio = new ArrayList<>(allAudio);
                 runOnUiThread(() -> {
-                    adapter = new AudioAdapter(filteredAudio, position -> {
-                        if (musicService != null) {
-                            musicService.setPlaylist(filteredAudio, position);
-                            updateMiniPlayer();
-                        }
-                    });
+                    adapter = new AudioAdapter(filteredAudio, this::playAtIndex);
                     recyclerView.setAdapter(adapter);
-                    updateMiniPlayer();
                 });
             } catch (Exception e) {
-                e.printStackTrace();
-                runOnUiThread(() -> Toast.makeText(this, "Error loading audio files", Toast.LENGTH_SHORT).show());
+                runOnUiThread(() -> Toast.makeText(this, "Error: " + e.getMessage(), Toast.LENGTH_LONG).show());
             }
         }).start();
     }
 
-    private void filterAudio(String query) {
-        if (allAudio == null) return;
+    private void filter(String query) {
         filteredAudio.clear();
         if (query.isEmpty()) {
             filteredAudio.addAll(allAudio);
         } else {
             String q = query.toLowerCase();
             for (AudioFile af : allAudio) {
-                String title = af.getSafeTitle().toLowerCase();
-                String artist = af.getArtistOrAlbum().toLowerCase();
-                if (title.contains(q) || artist.contains(q)) {
+                if (af.getSafeTitle().toLowerCase().contains(q) || af.getArtistOrAlbum().toLowerCase().contains(q)) {
                     filteredAudio.add(af);
                 }
             }
@@ -267,35 +207,113 @@ public class MainActivity extends AppCompatActivity implements MusicService.Musi
         adapter.notifyDataSetChanged();
     }
 
-    private void updateMiniPlayer() {
-        if (musicService == null) return;
-        AudioFile track = musicService.getCurrentTrack();
-        if (track != null) {
-            miniPlayer.setVisibility(View.VISIBLE);
-            miniTitle.setText(track.getSafeTitle());
-            miniArtist.setText(track.getArtistOrAlbum());
-            btnPlay.setImageResource(musicService.isPlaying() ? android.R.drawable.ic_media_pause : android.R.drawable.ic_media_play);
-            int dur = musicService.getDuration();
-            seekBar.setMax(dur > 0 ? dur : 100);
-            totalTimeText.setText(formatTime(dur));
-            speedLabel.setText(String.format(Locale.US, "%.2fx", musicService.getSpeed()));
+    private void playAtIndex(int index) {
+        if (index < 0 || index >= filteredAudio.size()) return;
+        currentIndex = index;
+        playCurrent();
+    }
 
-            int idx = musicService.getCurrentIndex();
-            if (idx >= 0 && idx < filteredAudio.size()) {
-                adapter.setSelectedPosition(idx);
-                recyclerView.scrollToPosition(idx);
-            }
+    private void playCurrent() {
+        if (currentIndex < 0 || currentIndex >= filteredAudio.size()) return;
+        AudioFile track = filteredAudio.get(currentIndex);
+        if (track == null || track.uri == null) return;
+
+        if (mediaPlayer != null) {
+            try { mediaPlayer.reset(); } catch (Exception ignored) {}
         } else {
-            miniPlayer.setVisibility(View.GONE);
+            mediaPlayer = new MediaPlayer();
+            mediaPlayer.setAudioAttributes(new AudioAttributes.Builder()
+                .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                .setUsage(AudioAttributes.USAGE_MEDIA).build());
+            mediaPlayer.setOnCompletionListener(mp -> onTrackComplete());
+            mediaPlayer.setOnErrorListener((mp, w, e) -> { next(); return true; });
+        }
+
+        try {
+            mediaPlayer.setDataSource(this, track.uri);
+            mediaPlayer.setOnPreparedListener(mp -> {
+                try { mp.setPlaybackParams(mp.getPlaybackParams().setSpeed(speed)); } catch (Exception ignored) {}
+                mp.start();
+                updateUI(track);
+                startProgressUpdates();
+            });
+            mediaPlayer.prepareAsync();
+        } catch (Exception e) {
+            Toast.makeText(this, "Cannot play: " + track.getSafeTitle(), Toast.LENGTH_SHORT).show();
+            next();
         }
     }
 
+    private void onTrackComplete() {
+        if (repeatMode == 1) {
+            playCurrent();
+        } else if (repeatMode == 2 || isShuffle) {
+            next();
+        } else if (currentIndex < filteredAudio.size() - 1) {
+            next();
+        } else {
+            pause();
+        }
+    }
+
+    private void togglePlayPause() {
+        if (mediaPlayer == null) return;
+        if (mediaPlayer.isPlaying()) {
+            mediaPlayer.pause();
+            btnPlay.setImageResource(android.R.drawable.ic_media_play);
+        } else {
+            mediaPlayer.start();
+            btnPlay.setImageResource(android.R.drawable.ic_media_pause);
+        }
+    }
+
+    private void pause() {
+        if (mediaPlayer != null && mediaPlayer.isPlaying()) {
+            mediaPlayer.pause();
+            btnPlay.setImageResource(android.R.drawable.ic_media_play);
+        }
+    }
+
+    private void next() {
+        if (filteredAudio.isEmpty()) return;
+        if (isShuffle) {
+            currentIndex = new Random().nextInt(filteredAudio.size());
+        } else {
+            currentIndex = (currentIndex + 1) % filteredAudio.size();
+        }
+        playCurrent();
+    }
+
+    private void previous() {
+        if (filteredAudio.isEmpty()) return;
+        if (mediaPlayer != null && mediaPlayer.getCurrentPosition() > 3000) {
+            mediaPlayer.seekTo(0);
+        } else {
+            currentIndex = currentIndex > 0 ? currentIndex - 1 : filteredAudio.size() - 1;
+            playCurrent();
+        }
+    }
+
+    private void updateUI(AudioFile track) {
+        miniPlayer.setVisibility(View.VISIBLE);
+        miniTitle.setText(track.getSafeTitle());
+        miniArtist.setText(track.getArtistOrAlbum());
+        btnPlay.setImageResource(android.R.drawable.ic_media_pause);
+        int dur = mediaPlayer != null ? mediaPlayer.getDuration() : 0;
+        seekBar.setMax(dur > 0 ? dur : 100);
+        totalTimeText.setText(formatTime(dur));
+        speedLabel.setText(String.format(Locale.US, "%.2fx", speed));
+        adapter.setSelectedPosition(currentIndex);
+        recyclerView.scrollToPosition(currentIndex);
+    }
+
     private void startProgressUpdates() {
+        handler.removeCallbacks(progressRunnable);
         progressRunnable = new Runnable() {
             @Override
             public void run() {
-                if (musicService != null && musicService.isPlaying() && !isUserSeeking) {
-                    int pos = musicService.getCurrentPosition();
+                if (mediaPlayer != null && mediaPlayer.isPlaying() && !isUserSeeking) {
+                    int pos = mediaPlayer.getCurrentPosition();
                     seekBar.setProgress(pos);
                     currentTimeText.setText(formatTime(pos));
                 }
@@ -305,12 +323,8 @@ public class MainActivity extends AppCompatActivity implements MusicService.Musi
         handler.post(progressRunnable);
     }
 
-    private void stopProgressUpdates() {
-        handler.removeCallbacks(progressRunnable);
-    }
-
     private void setSleepTimer(int minutes) {
-        sleepHandler.removeCallbacks(sleepRunnable);
+        sleepHandler.removeCallbacksAndMessages(null);
         if (minutes == 0) {
             sleepEndSeconds = -1;
             sleepCountdown.setText("");
@@ -326,7 +340,7 @@ public class MainActivity extends AppCompatActivity implements MusicService.Musi
         if (sleepEndSeconds < 0) return;
         int remaining = sleepEndSeconds - (int) (System.currentTimeMillis() / 1000);
         if (remaining <= 0) {
-            if (musicService != null) musicService.pause();
+            pause();
             sleepEndSeconds = -1;
             sleepCountdown.setText("");
             sleepPanel.setVisibility(View.GONE);
@@ -335,20 +349,7 @@ public class MainActivity extends AppCompatActivity implements MusicService.Musi
         int m = remaining / 60;
         int s = remaining % 60;
         sleepCountdown.setText(String.format(Locale.US, "%d:%02d", m, s));
-        sleepRunnable = this::tickSleep;
-        sleepHandler.postDelayed(sleepRunnable, 1000);
-    }
-
-    @Override
-    public void onTrackChanged(AudioFile track) {
-        runOnUiThread(this::updateMiniPlayer);
-    }
-
-    @Override
-    public void onPlaybackStateChanged(boolean isPlaying) {
-        runOnUiThread(() -> {
-            btnPlay.setImageResource(isPlaying ? android.R.drawable.ic_media_pause : android.R.drawable.ic_media_play);
-        });
+        sleepHandler.postDelayed(this::tickSleep, 1000);
     }
 
     private String formatTime(int ms) {
