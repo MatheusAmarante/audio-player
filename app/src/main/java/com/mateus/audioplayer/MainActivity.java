@@ -11,6 +11,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.util.Log;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.ImageButton;
@@ -23,6 +24,8 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -30,6 +33,7 @@ import java.util.Random;
 
 public class MainActivity extends AppCompatActivity {
 
+    private static final String TAG = "AudioPlayer";
     private static final int PERMISSION_REQUEST = 100;
 
     private MediaPlayer mediaPlayer;
@@ -58,89 +62,141 @@ public class MainActivity extends AppCompatActivity {
     private int sleepEndSeconds = -1;
     private Handler sleepHandler = new Handler(Looper.getMainLooper());
 
+    private final StringBuilder debugLog = new StringBuilder();
+
+    private void log(String msg) {
+        Log.d(TAG, msg);
+        debugLog.append(msg).append("\n");
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
-
-        recyclerView = findViewById(R.id.recycler_view);
-        searchInput = findViewById(R.id.search_input);
-        miniPlayer = findViewById(R.id.mini_player);
-        miniTitle = findViewById(R.id.mini_title);
-        miniArtist = findViewById(R.id.mini_artist);
-        currentTimeText = findViewById(R.id.current_time);
-        totalTimeText = findViewById(R.id.total_time);
-        btnPlay = findViewById(R.id.btn_play);
-        btnPrev = findViewById(R.id.btn_prev);
-        btnNext = findViewById(R.id.btn_next);
-        btnShuffle = findViewById(R.id.btn_shuffle);
-        btnRepeat = findViewById(R.id.btn_repeat);
-        seekBar = findViewById(R.id.seek_bar);
-        speedLabel = findViewById(R.id.speed_label);
-        speedPanel = findViewById(R.id.speed_panel);
-        sleepPanel = findViewById(R.id.sleep_panel);
-        sleepCountdown = findViewById(R.id.sleep_countdown);
-
-        recyclerView.setLayoutManager(new LinearLayoutManager(this));
-        adapter = new AudioAdapter(filteredAudio, this::playAtIndex);
-        recyclerView.setAdapter(adapter);
-
-        searchInput.addTextChangedListener(new TextWatcher() {
-            @Override public void beforeTextChanged(CharSequence s, int a, int b, int c) {}
-            @Override public void onTextChanged(CharSequence s, int a, int b, int c) { filter(s.toString()); }
-            @Override public void afterTextChanged(Editable s) {}
-        });
-
-        btnPlay.setOnClickListener(v -> togglePlayPause());
-        btnPrev.setOnClickListener(v -> previous());
-        btnNext.setOnClickListener(v -> next());
-
-        btnShuffle.setOnClickListener(v -> {
-            isShuffle = !isShuffle;
-            btnShuffle.setColorFilter(isShuffle ? 0xFF1e40af : 0xFF8b8b9e);
-        });
-
-        btnRepeat.setOnClickListener(v -> {
-            repeatMode = (repeatMode + 1) % 3;
-            btnRepeat.setColorFilter(repeatMode > 0 ? 0xFF1e40af : 0xFF8b8b9e);
-        });
-
-        findViewById(R.id.btn_speed).setOnClickListener(v ->
-            speedPanel.setVisibility(speedPanel.getVisibility() == View.VISIBLE ? View.GONE : View.VISIBLE));
-
-        int[] speedIds = {R.id.speed_05, R.id.speed_075, R.id.speed_1, R.id.speed_125, R.id.speed_15, R.id.speed_2};
-        float[] speeds = {0.5f, 0.75f, 1.0f, 1.25f, 1.5f, 2.0f};
-        for (int i = 0; i < speedIds.length; i++) {
-            final float s = speeds[i];
-            findViewById(speedIds[i]).setOnClickListener(v -> {
-                speed = s;
-                if (mediaPlayer != null) {
-                    try { mediaPlayer.setPlaybackParams(mediaPlayer.getPlaybackParams().setSpeed(s)); } catch (Exception ignored) {}
-                }
-                speedLabel.setText(String.format(Locale.US, "%.2fx", s));
-                speedPanel.setVisibility(View.GONE);
-            });
-        }
-
-        int[] sleepIds = {R.id.sleep_15, R.id.sleep_30, R.id.sleep_60, R.id.sleep_off};
-        int[] sleepMins = {15, 30, 60, 0};
-        for (int i = 0; i < sleepIds.length; i++) {
-            final int mins = sleepMins[i];
-            findViewById(sleepIds[i]).setOnClickListener(v -> setSleepTimer(mins));
-        }
-
-        seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            @Override public void onProgressChanged(SeekBar sb, int p, boolean fromUser) {
-                if (fromUser && mediaPlayer != null) {
-                    mediaPlayer.seekTo(p);
-                    currentTimeText.setText(formatTime(p));
-                }
+        // Global crash handler
+        final Thread.UncaughtExceptionHandler defaultHandler = Thread.getDefaultUncaughtExceptionHandler();
+        Thread.setDefaultUncaughtExceptionHandler((thread, ex) -> {
+            StringWriter sw = new StringWriter();
+            ex.printStackTrace(new PrintWriter(sw));
+            String stack = "Thread: " + thread.getName() + "\n" + sw.toString() + "\n\nDebug log:\n" + debugLog.toString();
+            Log.e(TAG, stack);
+            try {
+                android.content.Intent intent = new android.content.Intent(MainActivity.this, CrashActivity.class);
+                intent.putExtra("error", stack);
+                intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK | android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                startActivity(intent);
+                android.os.Process.killProcess(android.os.Process.myPid());
+            } catch (Exception e) {
+                if (defaultHandler != null) defaultHandler.uncaughtException(thread, ex);
             }
-            @Override public void onStartTrackingTouch(SeekBar sb) { isUserSeeking = true; }
-            @Override public void onStopTrackingTouch(SeekBar sb) { isUserSeeking = false; }
         });
 
-        requestPermissions();
+        try {
+            log("onCreate start");
+            super.onCreate(savedInstanceState);
+            log("super.onCreate done");
+
+            setContentView(R.layout.activity_main);
+            log("setContentView done");
+
+            recyclerView = findViewById(R.id.recycler_view);
+            log("recyclerView found");
+            searchInput = findViewById(R.id.search_input);
+            miniPlayer = findViewById(R.id.mini_player);
+            miniTitle = findViewById(R.id.mini_title);
+            miniArtist = findViewById(R.id.mini_artist);
+            currentTimeText = findViewById(R.id.current_time);
+            totalTimeText = findViewById(R.id.total_time);
+            btnPlay = findViewById(R.id.btn_play);
+            btnPrev = findViewById(R.id.btn_prev);
+            btnNext = findViewById(R.id.btn_next);
+            btnShuffle = findViewById(R.id.btn_shuffle);
+            btnRepeat = findViewById(R.id.btn_repeat);
+            seekBar = findViewById(R.id.seek_bar);
+            speedLabel = findViewById(R.id.speed_label);
+            speedPanel = findViewById(R.id.speed_panel);
+            sleepPanel = findViewById(R.id.sleep_panel);
+            sleepCountdown = findViewById(R.id.sleep_countdown);
+            log("all views found");
+
+            recyclerView.setLayoutManager(new LinearLayoutManager(this));
+            log("layoutManager set");
+
+            adapter = new AudioAdapter(filteredAudio, this::playAtIndex);
+            recyclerView.setAdapter(adapter);
+            log("adapter set");
+
+            searchInput.addTextChangedListener(new TextWatcher() {
+                @Override public void beforeTextChanged(CharSequence s, int a, int b, int c) {}
+                @Override public void onTextChanged(CharSequence s, int a, int b, int c) { filter(s.toString()); }
+                @Override public void afterTextChanged(Editable s) {}
+            });
+            log("search listener set");
+
+            btnPlay.setOnClickListener(v -> togglePlayPause());
+            btnPrev.setOnClickListener(v -> previous());
+            btnNext.setOnClickListener(v -> next());
+            log("button listeners set");
+
+            btnShuffle.setOnClickListener(v -> {
+                isShuffle = !isShuffle;
+                btnShuffle.setColorFilter(isShuffle ? 0xFF1e40af : 0xFF8b8b9e);
+            });
+
+            btnRepeat.setOnClickListener(v -> {
+                repeatMode = (repeatMode + 1) % 3;
+                btnRepeat.setColorFilter(repeatMode > 0 ? 0xFF1e40af : 0xFF8b8b9e);
+            });
+
+            findViewById(R.id.btn_speed).setOnClickListener(v ->
+                speedPanel.setVisibility(speedPanel.getVisibility() == View.VISIBLE ? View.GONE : View.VISIBLE));
+
+            int[] speedIds = {R.id.speed_05, R.id.speed_075, R.id.speed_1, R.id.speed_125, R.id.speed_15, R.id.speed_2};
+            float[] speeds = {0.5f, 0.75f, 1.0f, 1.25f, 1.5f, 2.0f};
+            for (int i = 0; i < speedIds.length; i++) {
+                final float s = speeds[i];
+                findViewById(speedIds[i]).setOnClickListener(v -> {
+                    speed = s;
+                    if (mediaPlayer != null) {
+                        try { mediaPlayer.setPlaybackParams(mediaPlayer.getPlaybackParams().setSpeed(s)); } catch (Exception ignored) {}
+                    }
+                    speedLabel.setText(String.format(Locale.US, "%.2fx", s));
+                    speedPanel.setVisibility(View.GONE);
+                });
+            }
+
+            int[] sleepIds = {R.id.sleep_15, R.id.sleep_30, R.id.sleep_60, R.id.sleep_off};
+            int[] sleepMins = {15, 30, 60, 0};
+            for (int i = 0; i < sleepIds.length; i++) {
+                final int mins = sleepMins[i];
+                findViewById(sleepIds[i]).setOnClickListener(v -> setSleepTimer(mins));
+            }
+            log("speed/sleep listeners set");
+
+            seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+                @Override public void onProgressChanged(SeekBar sb, int p, boolean fromUser) {
+                    if (fromUser && mediaPlayer != null) {
+                        mediaPlayer.seekTo(p);
+                        currentTimeText.setText(formatTime(p));
+                    }
+                }
+                @Override public void onStartTrackingTouch(SeekBar sb) { isUserSeeking = true; }
+                @Override public void onStopTrackingTouch(SeekBar sb) { isUserSeeking = false; }
+            });
+            log("seekbar listener set");
+
+            log("calling requestPermissions");
+            requestPermissions();
+            log("onCreate complete");
+        } catch (Exception e) {
+            StringWriter sw = new StringWriter();
+            e.printStackTrace(new PrintWriter(sw));
+            String stack = "onCreate crash:\n" + sw.toString() + "\n\nDebug log:\n" + debugLog.toString();
+            Log.e(TAG, stack);
+            android.content.Intent intent = new android.content.Intent(this, CrashActivity.class);
+            intent.putExtra("error", stack);
+            intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK | android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK);
+            startActivity(intent);
+            finish();
+        }
     }
 
     @Override
@@ -162,9 +218,12 @@ public class MainActivity extends AppCompatActivity {
             ? Manifest.permission.READ_MEDIA_AUDIO
             : Manifest.permission.READ_EXTERNAL_STORAGE;
 
+        log("checking permission: " + perm);
         if (ContextCompat.checkSelfPermission(this, perm) != PackageManager.PERMISSION_GRANTED) {
+            log("permission not granted, requesting");
             ActivityCompat.requestPermissions(this, new String[]{perm}, PERMISSION_REQUEST);
         } else {
+            log("permission already granted, loading audio");
             loadAudio();
         }
     }
@@ -172,22 +231,29 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public void onRequestPermissionsResult(int code, @NonNull String[] perms, @NonNull int[] results) {
         super.onRequestPermissionsResult(code, perms, results);
+        log("onRequestPermissionsResult: code=" + code + " granted=" + (results.length > 0 && results[0] == PackageManager.PERMISSION_GRANTED));
         if (code == PERMISSION_REQUEST && results.length > 0 && results[0] == PackageManager.PERMISSION_GRANTED) {
             loadAudio();
         }
     }
 
     private void loadAudio() {
+        log("loadAudio started");
         new Thread(() -> {
             try {
                 allAudio = AudioLoader.loadAllAudio(this);
+                log("loaded " + allAudio.size() + " audio files");
                 filteredAudio = new ArrayList<>(allAudio);
                 runOnUiThread(() -> {
                     adapter = new AudioAdapter(filteredAudio, this::playAtIndex);
                     recyclerView.setAdapter(adapter);
+                    log("adapter updated with " + filteredAudio.size() + " items");
                 });
             } catch (Exception e) {
-                runOnUiThread(() -> Toast.makeText(this, "Error: " + e.getMessage(), Toast.LENGTH_LONG).show());
+                StringWriter sw = new StringWriter();
+                e.printStackTrace(new PrintWriter(sw));
+                log("loadAudio error: " + sw.toString());
+                runOnUiThread(() -> Toast.makeText(this, "Error loading: " + e.getMessage(), Toast.LENGTH_LONG).show());
             }
         }).start();
     }

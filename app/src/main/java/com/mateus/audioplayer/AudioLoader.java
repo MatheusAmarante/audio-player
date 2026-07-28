@@ -5,6 +5,7 @@ import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
 import android.provider.MediaStore;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -30,39 +31,45 @@ public class AudioLoader {
         Cursor cursor = null;
         try {
             cursor = cr.query(uri, projection, null, null, sortOrder);
-            if (cursor != null) {
-                int idCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media._ID);
-                int titleCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.TITLE);
-                int artistCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ARTIST);
-                int albumCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM);
-                int durationCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION);
-                int dataCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA);
-                int displayCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DISPLAY_NAME);
-                int sizeCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.SIZE);
+            if (cursor != null && cursor.moveToFirst()) {
+                int idCol = cursor.getColumnIndex(MediaStore.Audio.Media._ID);
+                int titleCol = cursor.getColumnIndex(MediaStore.Audio.Media.TITLE);
+                int artistCol = cursor.getColumnIndex(MediaStore.Audio.Media.ARTIST);
+                int albumCol = cursor.getColumnIndex(MediaStore.Audio.Media.ALBUM);
+                int durationCol = cursor.getColumnIndex(MediaStore.Audio.Media.DURATION);
+                int dataCol = cursor.getColumnIndex(MediaStore.Audio.Media.DATA);
+                int displayCol = cursor.getColumnIndex(MediaStore.Audio.Media.DISPLAY_NAME);
+                int sizeCol = cursor.getColumnIndex(MediaStore.Audio.Media.SIZE);
 
-                while (cursor.moveToNext()) {
-                    long duration = cursor.getLong(durationCol);
+                do {
+                    long duration = durationCol >= 0 ? cursor.getLong(durationCol) : 0;
                     if (duration <= 0) continue;
 
                     AudioFile af = new AudioFile();
-                    af.id = cursor.getLong(idCol);
-                    af.title = cursor.getString(titleCol);
-                    af.artist = cursor.getString(artistCol);
-                    af.album = cursor.getString(albumCol);
+                    af.id = idCol >= 0 ? cursor.getLong(idCol) : -1;
+                    af.title = titleCol >= 0 ? cursor.getString(titleCol) : "Unknown";
+                    af.artist = artistCol >= 0 ? cursor.getString(artistCol) : null;
+                    af.album = albumCol >= 0 ? cursor.getString(albumCol) : null;
                     af.duration = duration;
-                    af.displayName = cursor.getString(displayCol);
-                    af.size = cursor.getLong(sizeCol);
+                    af.displayName = displayCol >= 0 ? cursor.getString(displayCol) : "Unknown";
+                    af.size = sizeCol >= 0 ? cursor.getLong(sizeCol) : 0;
 
-                    String data = cursor.getString(dataCol);
+                    // Build a proper URI
+                    String data = dataCol >= 0 ? cursor.getString(dataCol) : null;
                     if (data != null && !data.isEmpty()) {
-                        af.uri = Uri.parse(data);
+                        File file = new File(data);
+                        if (file.exists()) {
+                            af.uri = Uri.fromFile(file);
+                        } else {
+                            // Fallback to content URI
+                            af.uri = Uri.withAppendedPath(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, String.valueOf(af.id));
+                        }
                     } else {
-                        // Fallback: use content URI
                         af.uri = Uri.withAppendedPath(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, String.valueOf(af.id));
                     }
 
                     list.add(af);
-                }
+                } while (cursor.moveToNext());
             }
         } catch (Exception e) {
             e.printStackTrace();
