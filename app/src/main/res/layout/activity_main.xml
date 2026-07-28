@@ -1,0 +1,274 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#0d1117">
+
+    <!-- Search -->
+    <EditText
+        android:id="@+id/search_input"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:layout_margin="12dp"
+        android:background="@drawable/search_bg"
+        android:hint="🔍 Search audio files..."
+        android:textColorHint="#8b8b9e"
+        android:textColor="#c9d1d9"
+        android:textSize="14sp"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:inputType="text"
+        android:maxLines="1" />
+
+    <!-- Audio list -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recycler_view"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:clipToPadding="false"
+        android:paddingBottom="80dp" />
+
+    <!-- Mini Player -->
+    <LinearLayout
+        android:id="@+id/mini_player"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="#161b22"
+        android:elevation="8dp"
+        android:padding="12dp"
+        android:visibility="gone">
+
+        <!-- SeekBar -->
+        <SeekBar
+            android:id="@+id/seek_bar"
+            android:layout_width="match_parent"
+            android:layout_height="24dp"
+            android:max="100"
+            android:progressTint="#1e40af"
+            android:thumbTint="#1e40af"
+            android:progressBackgroundTint="#30363d" />
+
+        <!-- Time row -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginTop="4dp">
+
+            <TextView
+                android:id="@+id/current_time"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="00:00"
+                android:textColor="#8b8b9e"
+                android:textSize="11sp"
+                android:fontFamily="monospace" />
+
+            <View android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
+
+            <TextView
+                android:id="@+id/total_time"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="00:00"
+                android:textColor="#8b8b9e"
+                android:textSize="11sp"
+                android:fontFamily="monospace" />
+        </LinearLayout>
+
+        <!-- Track info + controls -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginTop="4dp">
+
+            <!-- Track info -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:layout_marginEnd="8dp">
+
+                <TextView
+                    android:id="@+id/mini_title"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="No track"
+                    android:textColor="#c9d1d9"
+                    android:textSize="13sp"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    android:fontFamily="sans-serif-medium" />
+
+                <TextView
+                    android:id="@+id/mini_artist"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text=""
+                    android:textColor="#8b8b9e"
+                    android:textSize="11sp"
+                    android:maxLines="1"
+                    android:ellipsize="end" />
+            </LinearLayout>
+
+            <!-- Controls -->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center">
+
+                <ImageButton
+                    android:id="@+id/btn_shuffle"
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:src="@android:drawable/ic_menu_sort_by_size"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:scaleType="fitCenter"
+                    android:padding="6dp"
+                    android:colorFilter="#8b8b9e" />
+
+                <ImageButton
+                    android:id="@+id/btn_prev"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:src="@android:drawable/ic_media_previous"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:scaleType="fitCenter"
+                    android:padding="8dp"
+                    android:colorFilter="#c9d1d9" />
+
+                <ImageButton
+                    android:id="@+id/btn_play"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:src="@android:drawable/ic_media_play"
+                    android:background="@drawable/play_btn_bg"
+                    android:scaleType="fitCenter"
+                    android:padding="10dp"
+                    android:colorFilter="#ffffff" />
+
+                <ImageButton
+                    android:id="@+id/btn_next"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:src="@android:drawable/ic_media_next"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:scaleType="fitCenter"
+                    android:padding="8dp"
+                    android:colorFilter="#c9d1d9" />
+
+                <ImageButton
+                    android:id="@+id/btn_repeat"
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:src="@android:drawable/ic_popup_sync"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:scaleType="fitCenter"
+                    android:padding="6dp"
+                    android:colorFilter="#8b8b9e" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Speed + Sleep row -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:layout_marginTop="6dp">
+
+            <ImageButton
+                android:id="@+id/btn_speed"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:src="@android:drawable/ic_media_ff"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:scaleType="fitCenter"
+                android:padding="4dp"
+                android:colorFilter="#8b8b9e" />
+
+            <TextView
+                android:id="@+id/speed_label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="1.00x"
+                android:textColor="#8b8b9e"
+                android:textSize="11sp"
+                android:layout_marginStart="4dp"
+                android:layout_marginEnd="16dp" />
+
+            <TextView
+                android:id="@+id/sleep_countdown"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text=""
+                android:textColor="#1e40af"
+                android:textSize="11sp"
+                android:fontFamily="monospace" />
+        </LinearLayout>
+
+        <!-- Speed panel -->
+        <LinearLayout
+            android:id="@+id/speed_panel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:layout_marginTop="4dp"
+            android:visibility="gone">
+
+            <TextView android:id="@+id/speed_05" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="0.5x" android:textColor="#8b8b9e" android:textSize="12sp"
+                android:padding="6dp" android:background="?attr/selectableItemBackground" android:clickable="true" android:focusable="true" />
+            <TextView android:id="@+id/speed_075" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="0.75x" android:textColor="#8b8b9e" android:textSize="12sp"
+                android:padding="6dp" android:background="?attr/selectableItemBackground" android:clickable="true" android:focusable="true" />
+            <TextView android:id="@+id/speed_1" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="1x" android:textColor="#1e40af" android:textSize="12sp"
+                android:padding="6dp" android:background="?attr/selectableItemBackground" android:clickable="true" android:focusable="true" />
+            <TextView android:id="@+id/speed_125" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="1.25x" android:textColor="#8b8b9e" android:textSize="12sp"
+                android:padding="6dp" android:background="?attr/selectableItemBackground" android:clickable="true" android:focusable="true" />
+            <TextView android:id="@+id/speed_15" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="1.5x" android:textColor="#8b8b9e" android:textSize="12sp"
+                android:padding="6dp" android:background="?attr/selectableItemBackground" android:clickable="true" android:focusable="true" />
+            <TextView android:id="@+id/speed_2" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="2x" android:textColor="#8b8b9e" android:textSize="12sp"
+                android:padding="6dp" android:background="?attr/selectableItemBackground" android:clickable="true" android:focusable="true" />
+        </LinearLayout>
+
+        <!-- Sleep panel -->
+        <LinearLayout
+            android:id="@+id/sleep_panel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:layout_marginTop="4dp"
+            android:visibility="gone">
+
+            <TextView android:text="😴" android:textSize="14sp" android:layout_marginEnd="8dp" />
+            <TextView android:id="@+id/sleep_15" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="15m" android:textColor="#8b8b9e" android:textSize="11sp"
+                android:padding="4dp" android:background="?attr/selectableItemBackground" android:clickable="true" android:focusable="true" />
+            <TextView android:id="@+id/sleep_30" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="30m" android:textColor="#8b8b9e" android:textSize="11sp"
+                android:padding="4dp" android:background="?attr/selectableItemBackground" android:clickable="true" android:focusable="true" />
+            <TextView android:id="@+id/sleep_60" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="1h" android:textColor="#8b8b9e" android:textSize="11sp"
+                android:padding="4dp" android:background="?attr/selectableItemBackground" android:clickable="true" android:focusable="true" />
+            <TextView android:id="@+id/sleep_off" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="Off" android:textColor="#e74c3c" android:textSize="11sp"
+                android:padding="4dp" android:background="?attr/selectableItemBackground" android:clickable="true" android:focusable="true" />
+        </LinearLayout>
+    </LinearLayout>
+</LinearLayout>

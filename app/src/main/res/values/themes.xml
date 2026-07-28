@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.AudioPlayer" parent="Theme.Material3.Dark.NoActionBar">
+        <item name="colorPrimary">#1e40af</item>
+        <item name="colorPrimaryVariant">#1a3590</item>
+        <item name="colorOnPrimary">#ffffff</item>
+        <item name="colorSecondary">#c9a84c</item>
+        <item name="colorOnSecondary">#000000</item>
+        <item name="android:colorBackground">#0d1117</item>
+        <item name="android:colorSurface">#161b22</item>
+        <item name="android:statusBarColor">#0d1117</item>
+        <item name="android:navigationBarColor">#0d1117</item>
+    </style>
+</resources>

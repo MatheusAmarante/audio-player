@@ -1,0 +1,12 @@
+package com.mateus.audioplayer;
+
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+
+public class NotificationReceiver extends BroadcastReceiver {
+    @Override
+    public void onReceive(Context context, Intent intent) {
+        // Handled by MusicService's internal receiver
+    }
+}
