@@ -134,7 +134,7 @@
                     android:background="?attr/selectableItemBackgroundBorderless"
                     android:scaleType="fitCenter"
                     android:padding="6dp"
-                    android:colorFilter="#8b8b9e" />
+                    app:tint="#8b8b9e" />
 
                 <ImageButton
                     android:id="@+id/btn_prev"
@@ -144,7 +144,7 @@
                     android:background="?attr/selectableItemBackgroundBorderless"
                     android:scaleType="fitCenter"
                     android:padding="8dp"
-                    android:colorFilter="#c9d1d9" />
+                    app:tint="#c9d1d9" />
 
                 <ImageButton
                     android:id="@+id/btn_play"
@@ -154,7 +154,7 @@
                     android:background="@drawable/play_btn_bg"
                     android:scaleType="fitCenter"
                     android:padding="10dp"
-                    android:colorFilter="#ffffff" />
+                    app:tint="#ffffff" />
 
                 <ImageButton
                     android:id="@+id/btn_next"
@@ -164,7 +164,7 @@
                     android:background="?attr/selectableItemBackgroundBorderless"
                     android:scaleType="fitCenter"
                     android:padding="8dp"
-                    android:colorFilter="#c9d1d9" />
+                    app:tint="#c9d1d9" />
 
                 <ImageButton
                     android:id="@+id/btn_repeat"
@@ -174,7 +174,7 @@
                     android:background="?attr/selectableItemBackgroundBorderless"
                     android:scaleType="fitCenter"
                     android:padding="6dp"
-                    android:colorFilter="#8b8b9e" />
+                    app:tint="#8b8b9e" />
             </LinearLayout>
         </LinearLayout>
 
@@ -194,7 +194,7 @@
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:scaleType="fitCenter"
                 android:padding="4dp"
-                android:colorFilter="#8b8b9e" />
+                app:tint="#8b8b9e" />
 
             <TextView
                 android:id="@+id/speed_label"
