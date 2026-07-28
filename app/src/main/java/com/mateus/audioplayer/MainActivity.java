@@ -248,7 +248,9 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        playerManager.removeCallback(null); // clear all
+        if (playerManager != null) {
+            playerManager.removeCallback(null);
+        }
     }
 
     private String formatTime(int ms) {
