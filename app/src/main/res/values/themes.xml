@@ -1,21 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Material 3 Dark Theme -->
-    <style name="Theme.AudioPlayer" parent="Theme.Material3.Dark.NoActionBar">
+    <style name="Theme.AudioPlayer" parent="Theme.AppCompat.NoActionBar">
         <item name="colorPrimary">#1e40af</item>
-        <item name="colorOnPrimary">#ffffff</item>
-        <item name="colorPrimaryContainer">#1a3590</item>
-        <item name="colorOnPrimaryContainer">#c9d1d9</item>
-        <item name="colorSecondary">#c9a84c</item>
-        <item name="colorOnSecondary">#0d1117</item>
-        <item name="colorSurface">#161b22</item>
-        <item name="colorOnSurface">#c9d1d9</item>
-        <item name="colorSurfaceVariant">#21262d</item>
-        <item name="colorOnSurfaceVariant">#8b8b9e</item>
-        <item name="colorBackground">#0d1117</item>
-        <item name="colorOnBackground">#c9d1d9</item>
+        <item name="colorPrimaryDark">#1a3590</item>
+        <item name="colorAccent">#c9a84c</item>
+        <item name="android:colorBackground">#0d1117</item>
         <item name="android:statusBarColor">#0d1117</item>
         <item name="android:navigationBarColor">#0d1117</item>
         <item name="android:windowBackground">#0d1117</item>
+        <item name="android:textColorPrimary">#c9d1d9</item>
+        <item name="android:textColorSecondary">#8b8b9e</item>
     </style>
 </resources>
