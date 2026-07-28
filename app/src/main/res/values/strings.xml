@@ -1,4 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Audio Player</string>
+    <string name="tab_library">Library</string>
+    <string name="tab_folders">Folders</string>
+    <string name="tab_playlists">Playlists</string>
+    <string name="search_hint">Search audio files…</string>
+    <string name="no_track">No track</string>
+    <string name="unknown_artist">Unknown</string>
+    <string name="add_folder">Add folder</string>
+    <string name="create_playlist">Create playlist</string>
+    <string name="delete_playlist">Delete playlist</string>
+    <string name="rename_playlist">Rename playlist</string>
+    <string name="add_tracks">Add tracks</string>
+    <string name="no_audio_found">No audio files found</string>
+    <string name="no_tracks_in_playlist">No tracks in this playlist</string>
 </resources>

@@ -11,7 +11,7 @@ import java.util.List;
 public class AudioAdapter extends RecyclerView.Adapter<AudioAdapter.ViewHolder> {
 
     private List<AudioFile> audioList;
-    private OnItemClickListener listener;
+    private final OnItemClickListener listener;
     private int selectedPosition = -1;
 
     public interface OnItemClickListener {
@@ -26,8 +26,8 @@ public class AudioAdapter extends RecyclerView.Adapter<AudioAdapter.ViewHolder> 
     public void setSelectedPosition(int pos) {
         int old = selectedPosition;
         selectedPosition = pos;
-        notifyItemChanged(old);
-        notifyItemChanged(pos);
+        if (old >= 0 && old < audioList.size()) notifyItemChanged(old);
+        if (pos >= 0 && pos < audioList.size()) notifyItemChanged(pos);
     }
 
     @NonNull
@@ -40,13 +40,13 @@ public class AudioAdapter extends RecyclerView.Adapter<AudioAdapter.ViewHolder> 
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         AudioFile af = audioList.get(position);
-        holder.titleText.setText(af.title);
+        holder.titleText.setText(af.getSafeTitle());
         holder.artistText.setText(af.getArtistOrAlbum());
         holder.durationText.setText(af.getDurationFormatted());
 
-        // Highlight selected
-        holder.itemView.setSelected(position == selectedPosition);
-        holder.itemView.setBackgroundColor(position == selectedPosition ? 0x1A1E40AF : 0x00000000);
+        boolean selected = position == selectedPosition;
+        holder.itemView.setSelected(selected);
+        holder.itemView.setBackgroundColor(selected ? 0x1A1E40AF : 0x00000000);
 
         holder.itemView.setOnClickListener(v -> {
             if (listener != null) listener.onItemClick(position);

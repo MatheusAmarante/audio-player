@@ -1,0 +1,62 @@
+package com.mateus.audioplayer;
+
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.TextView;
+import androidx.annotation.NonNull;
+import androidx.recyclerview.widget.RecyclerView;
+import java.util.List;
+
+public class PlaylistAdapter extends RecyclerView.Adapter<PlaylistAdapter.ViewHolder> {
+
+    private List<DatabaseHelper.Playlist> playlists;
+    private final OnPlaylistClickListener listener;
+
+    public interface OnPlaylistClickListener {
+        void onPlaylistClick(DatabaseHelper.Playlist playlist);
+        void onPlaylistLongClick(DatabaseHelper.Playlist playlist);
+    }
+
+    public PlaylistAdapter(List<DatabaseHelper.Playlist> playlists, OnPlaylistClickListener listener) {
+        this.playlists = playlists;
+        this.listener = listener;
+    }
+
+    @NonNull
+    @Override
+    public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+        View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_playlist, parent, false);
+        return new ViewHolder(view);
+    }
+
+    @Override
+    public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
+        DatabaseHelper.Playlist p = playlists.get(position);
+        holder.nameText.setText(p.name);
+        holder.countText.setText(p.trackCount + " tracks");
+
+        holder.itemView.setOnClickListener(v -> {
+            if (listener != null) listener.onPlaylistClick(p);
+        });
+        holder.itemView.setOnLongClickListener(v -> {
+            if (listener != null) listener.onPlaylistLongClick(p);
+            return true;
+        });
+    }
+
+    @Override
+    public int getItemCount() {
+        return playlists != null ? playlists.size() : 0;
+    }
+
+    static class ViewHolder extends RecyclerView.ViewHolder {
+        TextView nameText, countText;
+
+        ViewHolder(View itemView) {
+            super(itemView);
+            nameText = itemView.findViewById(R.id.tv_playlist_name);
+            countText = itemView.findViewById(R.id.tv_track_count);
+        }
+    }
+}
