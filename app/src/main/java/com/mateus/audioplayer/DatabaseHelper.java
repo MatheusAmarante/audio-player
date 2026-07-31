@@ -11,7 +11,7 @@ import java.util.List;
 public class DatabaseHelper extends SQLiteOpenHelper {
 
     private static final String DB_NAME = "audioplayer.db";
-    private static final int DB_VERSION = 1;
+    private static final int DB_VERSION = 2;
 
     // Playlists table
     private static final String TABLE_PLAYLISTS = "playlists";
@@ -19,18 +19,12 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     private static final String COL_PLAYLIST_NAME = "name";
     private static final String COL_PLAYLIST_CREATED = "created_at";
 
-    // Playlist tracks table
+    // Playlist tracks table (stores serialized YouTubeTrack)
     private static final String TABLE_TRACKS = "playlist_tracks";
     private static final String COL_TRACK_ID = "id";
     private static final String COL_TRACK_PLAYLIST_ID = "playlist_id";
-    private static final String COL_TRACK_DATA = "track_data"; // serialized AudioFile
+    private static final String COL_TRACK_DATA = "track_data";
     private static final String COL_TRACK_ORDER = "track_order";
-
-    // Saved folders table
-    private static final String TABLE_FOLDERS = "saved_folders";
-    private static final String COL_FOLDER_ID = "id";
-    private static final String COL_FOLDER_URI = "uri";
-    private static final String COL_FOLDER_NAME = "name";
 
     public DatabaseHelper(Context context) {
         super(context, DB_NAME, null, DB_VERSION);
@@ -49,18 +43,12 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             COL_TRACK_DATA + " TEXT NOT NULL, " +
             COL_TRACK_ORDER + " INTEGER DEFAULT 0, " +
             "FOREIGN KEY(" + COL_TRACK_PLAYLIST_ID + ") REFERENCES " + TABLE_PLAYLISTS + "(" + COL_PLAYLIST_ID + ") ON DELETE CASCADE)");
-
-        db.execSQL("CREATE TABLE " + TABLE_FOLDERS + " (" +
-            COL_FOLDER_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
-            COL_FOLDER_URI + " TEXT NOT NULL, " +
-            COL_FOLDER_NAME + " TEXT NOT NULL)");
     }
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
         db.execSQL("DROP TABLE IF EXISTS " + TABLE_TRACKS);
         db.execSQL("DROP TABLE IF EXISTS " + TABLE_PLAYLISTS);
-        db.execSQL("DROP TABLE IF EXISTS " + TABLE_FOLDERS);
         onCreate(db);
     }
 
@@ -141,7 +129,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
     // ==================== TRACKS ====================
 
-    public long addTrackToPlaylist(long playlistId, AudioFile track) {
+    public long addTrackToPlaylist(long playlistId, YouTubeTrack track) {
         SQLiteDatabase db = getWritableDatabase();
         int nextOrder = getNextOrder(db, playlistId);
         ContentValues cv = new ContentValues();
@@ -156,18 +144,17 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         db.delete(TABLE_TRACKS, COL_TRACK_ID + "=?", new String[]{String.valueOf(trackId)});
     }
 
-    public List<AudioFile> getTracksForPlaylist(long playlistId) {
-        List<AudioFile> list = new ArrayList<>();
+    public List<YouTubeTrack> getTracksForPlaylist(long playlistId) {
+        List<YouTubeTrack> list = new ArrayList<>();
         SQLiteDatabase db = getReadableDatabase();
         Cursor c = db.query(TABLE_TRACKS, null, COL_TRACK_PLAYLIST_ID + "=?",
             new String[]{String.valueOf(playlistId)}, null, null, COL_TRACK_ORDER + " ASC");
         if (c != null) {
             while (c.moveToNext()) {
                 String data = c.getString(c.getColumnIndex(COL_TRACK_DATA));
-                AudioFile af = AudioFile.deserialize(data);
-                if (af != null) {
-                    af.id = c.getLong(c.getColumnIndex(COL_TRACK_ID)); // reuse id for track db id
-                    list.add(af);
+                YouTubeTrack track = YouTubeTrack.deserialize(data);
+                if (track != null) {
+                    list.add(track);
                 }
             }
             c.close();
@@ -186,38 +173,6 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         return max + 1;
     }
 
-    // ==================== FOLDERS ====================
-
-    public long saveFolder(String uri, String name) {
-        SQLiteDatabase db = getWritableDatabase();
-        ContentValues cv = new ContentValues();
-        cv.put(COL_FOLDER_URI, uri);
-        cv.put(COL_FOLDER_NAME, name);
-        return db.insert(TABLE_FOLDERS, null, cv);
-    }
-
-    public void removeFolder(long folderId) {
-        SQLiteDatabase db = getWritableDatabase();
-        db.delete(TABLE_FOLDERS, COL_FOLDER_ID + "=?", new String[]{String.valueOf(folderId)});
-    }
-
-    public List<SavedFolder> getSavedFolders() {
-        List<SavedFolder> list = new ArrayList<>();
-        SQLiteDatabase db = getReadableDatabase();
-        Cursor c = db.query(TABLE_FOLDERS, null, null, null, null, null, COL_FOLDER_NAME + " ASC");
-        if (c != null) {
-            while (c.moveToNext()) {
-                SavedFolder sf = new SavedFolder();
-                sf.id = c.getLong(c.getColumnIndex(COL_FOLDER_ID));
-                sf.uri = c.getString(c.getColumnIndex(COL_FOLDER_URI));
-                sf.name = c.getString(c.getColumnIndex(COL_FOLDER_NAME));
-                list.add(sf);
-            }
-            c.close();
-        }
-        return list;
-    }
-
     // ==================== MODEL CLASSES ====================
 
     public static class Playlist {
@@ -225,11 +180,5 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         public String name;
         public long createdAt;
         public int trackCount;
-    }
-
-    public static class SavedFolder {
-        public long id;
-        public String uri;
-        public String name;
     }
 }

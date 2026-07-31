@@ -91,15 +91,9 @@ public class PlaylistsFragment extends Fragment {
             .setTitle(playlist.name)
             .setItems(options, (dialog, which) -> {
                 switch (which) {
-                    case 0:
-                        openPlaylist(playlist);
-                        break;
-                    case 1:
-                        showRenameDialog(playlist);
-                        break;
-                    case 2:
-                        showDeleteConfirm(playlist);
-                        break;
+                    case 0: openPlaylist(playlist); break;
+                    case 1: showRenameDialog(playlist); break;
+                    case 2: showDeleteConfirm(playlist); break;
                 }
             })
             .show();

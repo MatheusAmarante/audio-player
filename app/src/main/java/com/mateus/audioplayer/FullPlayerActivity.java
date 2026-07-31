@@ -5,10 +5,11 @@ import android.os.Handler;
 import android.os.Looper;
 import android.view.View;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.SeekBar;
 import android.widget.TextView;
-import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
+import com.bumptech.glide.Glide;
 import java.util.Locale;
 
 public class FullPlayerActivity extends AppCompatActivity {
@@ -17,10 +18,10 @@ public class FullPlayerActivity extends AppCompatActivity {
     private final Handler handler = new Handler(Looper.getMainLooper());
     private boolean isUserSeeking = false;
 
-    // Views
+    private ImageView thumbnail;
     private TextView titleText, artistText, currentTimeText, totalTimeText;
     private TextView speedLabel, sleepCountdown;
-    private ImageButton btnPlayPause, btnPrev, btnNext, btnShuffle, btnRepeat, btnSpeed;
+    private ImageButton btnPlayPause, btnPrev, btnNext, btnShuffle, btnRepeat;
     private SeekBar seekBar;
     private View speedPanel, sleepPanel;
 
@@ -32,6 +33,7 @@ public class FullPlayerActivity extends AppCompatActivity {
         playerManager = PlayerManager.getInstance();
 
         // Bind views
+        thumbnail = findViewById(R.id.full_thumbnail);
         titleText = findViewById(R.id.full_title);
         artistText = findViewById(R.id.full_artist);
         currentTimeText = findViewById(R.id.full_current_time);
@@ -43,7 +45,6 @@ public class FullPlayerActivity extends AppCompatActivity {
         btnNext = findViewById(R.id.full_next);
         btnShuffle = findViewById(R.id.full_shuffle);
         btnRepeat = findViewById(R.id.full_repeat);
-        btnSpeed = findViewById(R.id.full_btn_speed);
         seekBar = findViewById(R.id.full_seekbar);
         speedPanel = findViewById(R.id.full_speed_panel);
         sleepPanel = findViewById(R.id.full_sleep_panel);
@@ -77,7 +78,7 @@ public class FullPlayerActivity extends AppCompatActivity {
         });
 
         // Speed
-        btnSpeed.setOnClickListener(v ->
+        speedLabel.setOnClickListener(v ->
             speedPanel.setVisibility(speedPanel.getVisibility() == View.VISIBLE ? View.GONE : View.VISIBLE));
 
         int[] speedIds = {R.id.full_speed_05, R.id.full_speed_075, R.id.full_speed_1,
@@ -93,6 +94,9 @@ public class FullPlayerActivity extends AppCompatActivity {
         }
 
         // Sleep timer
+        sleepCountdown.setOnClickListener(v ->
+            sleepPanel.setVisibility(sleepPanel.getVisibility() == View.VISIBLE ? View.GONE : View.VISIBLE));
+
         int[] sleepIds = {R.id.full_sleep_15, R.id.full_sleep_30, R.id.full_sleep_60, R.id.full_sleep_off};
         int[] sleepMins = {15, 30, 60, 0};
         for (int i = 0; i < sleepIds.length; i++) {
@@ -100,7 +104,7 @@ public class FullPlayerActivity extends AppCompatActivity {
             findViewById(sleepIds[i]).setOnClickListener(v -> {
                 playerManager.setSleepTimer(mins);
                 if (mins == 0) {
-                    sleepCountdown.setText("");
+                    sleepCountdown.setText("Sleep");
                     sleepPanel.setVisibility(View.GONE);
                 } else {
                     sleepPanel.setVisibility(View.VISIBLE);
@@ -132,7 +136,7 @@ public class FullPlayerActivity extends AppCompatActivity {
         // Register callbacks
         playerManager.addCallback(new PlayerManager.PlayerCallback() {
             @Override
-            public void onTrackChanged(AudioFile track) {
+            public void onTrackChanged(YouTubeTrack track) {
                 runOnUiThread(() -> updateTrackInfo(track));
             }
 
@@ -166,18 +170,18 @@ public class FullPlayerActivity extends AppCompatActivity {
             public void onSleepTimerChanged(int remainingSeconds) {
                 runOnUiThread(() -> {
                     if (remainingSeconds <= 0) {
-                        sleepCountdown.setText("");
+                        sleepCountdown.setText("Sleep");
                     } else {
                         int m = remainingSeconds / 60;
                         int s = remainingSeconds % 60;
-                        sleepCountdown.setText(String.format(Locale.US, "%d:%02d", m, s));
+                        sleepCountdown.setText(String.format(Locale.US, "Sleep: %d:%02d", m, s));
                     }
                 });
             }
         });
 
         // Initial state
-        AudioFile current = playerManager.getCurrentTrack();
+        YouTubeTrack current = playerManager.getCurrentTrack();
         if (current != null) {
             updateTrackInfo(current);
         }
@@ -194,16 +198,21 @@ public class FullPlayerActivity extends AppCompatActivity {
         }
     }
 
-    private void updateTrackInfo(AudioFile track) {
+    private void updateTrackInfo(YouTubeTrack track) {
         if (track == null) return;
-        titleText.setText(track.getSafeTitle());
-        artistText.setText(track.getArtistOrAlbum());
+        titleText.setText(track.title);
+        artistText.setText(track.getArtistOrUploader());
+
+        if (track.thumbnailUrl != null && !track.thumbnailUrl.isEmpty()) {
+            Glide.with(this).load(track.thumbnailUrl)
+                .placeholder(R.drawable.album_art_placeholder)
+                .into(thumbnail);
+        }
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        // Don't release player, just remove our callback
     }
 
     private String formatTime(int ms) {

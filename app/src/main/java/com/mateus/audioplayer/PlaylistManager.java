@@ -1,7 +1,6 @@
 package com.mateus.audioplayer;
 
 import android.content.Context;
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -39,7 +38,7 @@ public class PlaylistManager {
         return dbHelper.getPlaylist(id);
     }
 
-    public long addTrack(long playlistId, AudioFile track) {
+    public long addTrack(long playlistId, YouTubeTrack track) {
         return dbHelper.addTrackToPlaylist(playlistId, track);
     }
 
@@ -47,19 +46,7 @@ public class PlaylistManager {
         dbHelper.removeTrackFromPlaylist(trackDbId);
     }
 
-    public List<AudioFile> getTracks(long playlistId) {
+    public List<YouTubeTrack> getTracks(long playlistId) {
         return dbHelper.getTracksForPlaylist(playlistId);
-    }
-
-    public long saveFolder(String uri, String name) {
-        return dbHelper.saveFolder(uri, name);
-    }
-
-    public void removeFolder(long folderId) {
-        dbHelper.removeFolder(folderId);
-    }
-
-    public List<DatabaseHelper.SavedFolder> getSavedFolders() {
-        return dbHelper.getSavedFolders();
     }
 }

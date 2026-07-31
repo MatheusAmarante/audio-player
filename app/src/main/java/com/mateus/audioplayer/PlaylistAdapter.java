@@ -3,6 +3,7 @@ package com.mateus.audioplayer;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageButton;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
@@ -10,7 +11,7 @@ import java.util.List;
 
 public class PlaylistAdapter extends RecyclerView.Adapter<PlaylistAdapter.ViewHolder> {
 
-    private List<DatabaseHelper.Playlist> playlists;
+    private final List<DatabaseHelper.Playlist> playlists;
     private final OnPlaylistClickListener listener;
 
     public interface OnPlaylistClickListener {
@@ -26,37 +27,39 @@ public class PlaylistAdapter extends RecyclerView.Adapter<PlaylistAdapter.ViewHo
     @NonNull
     @Override
     public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_playlist, parent, false);
-        return new ViewHolder(view);
+        View v = LayoutInflater.from(parent.getContext())
+            .inflate(R.layout.item_playlist, parent, false);
+        return new ViewHolder(v);
     }
 
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-        DatabaseHelper.Playlist p = playlists.get(position);
-        holder.nameText.setText(p.name);
-        holder.countText.setText(p.trackCount + " tracks");
+        DatabaseHelper.Playlist playlist = playlists.get(position);
+        holder.nameText.setText(playlist.name);
+        holder.trackCountText.setText(playlist.trackCount + " tracks");
 
-        holder.itemView.setOnClickListener(v -> {
-            if (listener != null) listener.onPlaylistClick(p);
-        });
+        holder.itemView.setOnClickListener(v -> listener.onPlaylistClick(playlist));
         holder.itemView.setOnLongClickListener(v -> {
-            if (listener != null) listener.onPlaylistLongClick(p);
+            listener.onPlaylistLongClick(playlist);
             return true;
         });
+        holder.moreBtn.setOnClickListener(v -> listener.onPlaylistLongClick(playlist));
     }
 
     @Override
     public int getItemCount() {
-        return playlists != null ? playlists.size() : 0;
+        return playlists.size();
     }
 
     static class ViewHolder extends RecyclerView.ViewHolder {
-        TextView nameText, countText;
+        TextView nameText, trackCountText;
+        ImageButton moreBtn;
 
-        ViewHolder(View itemView) {
-            super(itemView);
-            nameText = itemView.findViewById(R.id.tv_playlist_name);
-            countText = itemView.findViewById(R.id.tv_track_count);
+        ViewHolder(View v) {
+            super(v);
+            nameText = v.findViewById(R.id.playlist_name);
+            trackCountText = v.findViewById(R.id.playlist_track_count);
+            moreBtn = v.findViewById(R.id.playlist_more_btn);
         }
     }
 }

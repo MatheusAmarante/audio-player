@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
@@ -10,61 +9,46 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="56dp"
-        android:orientation="horizontal"
         android:gravity="center_vertical"
         android:paddingStart="8dp"
-        android:paddingEnd="16dp">
+        android:paddingEnd="16dp"
+        android:background="#0d1117">
 
         <ImageButton
             android:id="@+id/playlist_detail_back"
             android:layout_width="40dp"
             android:layout_height="40dp"
             android:src="@android:drawable/ic_menu_revert"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:scaleType="fitCenter"
-            android:padding="8dp"
-            app:tint="#c9d1d9" />
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Back" />
 
         <TextView
             android:id="@+id/playlist_detail_title"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Playlist"
-            android:textColor="#c9d1d9"
+            android:textColor="#e6e6e6"
             android:textSize="18sp"
-            android:fontFamily="sans-serif-medium"
-            android:layout_marginStart="8dp" />
+            android:textStyle="bold" />
 
-        <ImageButton
-            android:id="@+id/btn_add_tracks"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:src="@android:drawable/ic_input_add"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:scaleType="fitCenter"
-            android:padding="8dp"
-            android:contentDescription="Add tracks"
-            app:tint="#1e40af" />
     </LinearLayout>
 
-    <!-- Empty state -->
     <TextView
-        android:id="@+id/playlist_empty"
+        android:id="@+id/playlist_detail_empty"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="No tracks in this playlist.\nTap + to add some."
-        android:textColor="#8b8b9e"
-        android:textSize="14sp"
+        android:layout_marginTop="48dp"
         android:gravity="center"
-        android:layout_marginTop="64dp"
-        android:visibility="gone" />
+        android:text="No tracks in this playlist"
+        android:textColor="#8b8b9e"
+        android:textSize="15sp" />
 
-    <!-- Track list -->
     <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/recycler_playlist_tracks"
+        android:id="@+id/recycler_playlist_detail"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:clipToPadding="false" />
+        android:clipToPadding="false"
+        android:paddingBottom="16dp" />
+
 </LinearLayout>

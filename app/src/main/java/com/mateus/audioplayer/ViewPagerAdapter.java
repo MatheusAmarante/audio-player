@@ -7,23 +7,22 @@ import androidx.viewpager2.adapter.FragmentStateAdapter;
 
 public class ViewPagerAdapter extends FragmentStateAdapter {
 
-    public ViewPagerAdapter(@NonNull FragmentActivity fragmentActivity) {
-        super(fragmentActivity);
+    public ViewPagerAdapter(@NonNull FragmentActivity fa) {
+        super(fa);
     }
 
     @NonNull
     @Override
     public Fragment createFragment(int position) {
         switch (position) {
-            case 0: return new LibraryFragment();
-            case 1: return new FoldersFragment();
-            case 2: return new PlaylistsFragment();
-            default: return new LibraryFragment();
+            case 0: return new SearchFragment();
+            case 1: return new PlaylistsFragment();
+            default: return new SearchFragment();
         }
     }
 
     @Override
     public int getItemCount() {
-        return 3;
+        return 2;
     }
 }
