@@ -5,4 +5,5 @@
     <color name="primary">#1e40af</color>
     <color name="text_primary">#e6e6e6</color>
     <color name="text_secondary">#8b8b9e</color>
+    <color name="ic_launcher_background">#1e40af</color>
 </resources>
