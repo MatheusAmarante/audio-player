@@ -14,13 +14,13 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 /**
- * Searches YouTube music via Piped API (no API key needed).
- * Piped is an open-source YouTube frontend that provides a REST API.
+ * Communicates with the yt-dlp proxy running on the Pi 2.
+ * The proxy handles YouTube search and stream URL resolution.
  */
 public class PipedApiClient {
 
-    // Use a reliable Piped instance
-    private static final String PIPED_BASE = "https://pipedapi.kavin.rocks";
+    // Local proxy on the Pi 2
+    private static final String PROXY_BASE = "http://192.168.0.5:5000";
 
     private final OkHttpClient client;
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
@@ -33,18 +33,17 @@ public class PipedApiClient {
 
     public PipedApiClient() {
         client = new OkHttpClient.Builder()
-            .connectTimeout(10, java.util.concurrent.TimeUnit.SECONDS)
-            .readTimeout(10, java.util.concurrent.TimeUnit.SECONDS)
+            .connectTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
+            .readTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
             .build();
     }
 
-    /** Search for music on YouTube via Piped */
+    /** Search for music on YouTube via the Pi proxy */
     public void search(String query, SearchCallback callback) {
         executor.execute(() -> {
             try {
-                String url = PIPED_BASE + "/search?q=" +
-                    java.net.URLEncoder.encode(query, "UTF-8") +
-                    "&filter=music_songs";
+                String url = PROXY_BASE + "/search?q=" +
+                    java.net.URLEncoder.encode(query, "UTF-8");
                 Request request = new Request.Builder().url(url).build();
                 Response response = client.newCall(request).execute();
                 if (!response.isSuccessful()) {
@@ -52,20 +51,17 @@ public class PipedApiClient {
                     return;
                 }
                 String body = response.body().string();
-                JSONObject json = new JSONObject(body);
-                JSONArray items = json.getJSONArray("items");
+                JSONArray items = new JSONArray(body);
                 List<YouTubeTrack> tracks = new ArrayList<>();
                 for (int i = 0; i < items.length(); i++) {
                     JSONObject item = items.getJSONObject(i);
                     YouTubeTrack track = new YouTubeTrack();
-                    track.videoId = item.optString("url", "").replace("/watch?v=", "");
+                    track.videoId = item.optString("videoId", "");
                     if (track.videoId.isEmpty()) continue;
                     track.title = item.optString("title", "Unknown");
-                    track.artist = item.optString("uploaderName", "");
+                    track.artist = item.optString("artist", "");
                     track.duration = item.optLong("duration", 0);
-                    track.thumbnailUrl = item.optString("thumbnail", "");
-                    // Piped provides audio stream URL via /streams endpoint
-                    track.audioStreamUrl = PIPED_BASE + "/streams/" + track.videoId;
+                    track.thumbnailUrl = item.optString("thumbnailUrl", "");
                     tracks.add(track);
                 }
                 mainHandler.post(() -> callback.onResults(tracks));
@@ -75,11 +71,11 @@ public class PipedApiClient {
         });
     }
 
-    /** Get audio stream URL for a video */
+    /** Get audio stream URL for a video via the Pi proxy */
     public void getStreamUrl(String videoId, StreamCallback callback) {
         executor.execute(() -> {
             try {
-                String url = PIPED_BASE + "/streams/" + videoId;
+                String url = PROXY_BASE + "/stream?id=" + videoId;
                 Request request = new Request.Builder().url(url).build();
                 Response response = client.newCall(request).execute();
                 if (!response.isSuccessful()) {
@@ -88,25 +84,12 @@ public class PipedApiClient {
                 }
                 String body = response.body().string();
                 JSONObject json = new JSONObject(body);
-                JSONArray audioStreams = json.optJSONArray("audioStreams");
-                if (audioStreams != null && audioStreams.length() > 0) {
-                    // Get the best quality audio stream
-                    String streamUrl = audioStreams.getJSONObject(0).optString("url", "");
-                    if (!streamUrl.isEmpty()) {
-                        mainHandler.post(() -> callback.onStreamUrl(streamUrl));
-                        return;
-                    }
+                String streamUrl = json.optString("url", "");
+                if (!streamUrl.isEmpty()) {
+                    mainHandler.post(() -> callback.onStreamUrl(streamUrl));
+                } else {
+                    mainHandler.post(() -> callback.onError(json.optString("error", "No stream URL")));
                 }
-                // Fallback: try video streams
-                JSONArray videoStreams = json.optJSONArray("videoStreams");
-                if (videoStreams != null && videoStreams.length() > 0) {
-                    String streamUrl = videoStreams.getJSONObject(0).optString("url", "");
-                    if (!streamUrl.isEmpty()) {
-                        mainHandler.post(() -> callback.onStreamUrl(streamUrl));
-                        return;
-                    }
-                }
-                mainHandler.post(() -> callback.onError("No audio stream found"));
             } catch (Exception e) {
                 mainHandler.post(() -> callback.onError(e.getMessage()));
             }
