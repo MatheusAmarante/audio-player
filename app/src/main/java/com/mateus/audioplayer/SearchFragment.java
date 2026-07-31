@@ -36,7 +36,10 @@ public class SearchFragment extends Fragment {
         View view = inflater.inflate(R.layout.fragment_search, container, false);
 
         playerManager = PlayerManager.getInstance();
-        apiClient = new PipedApiClient();
+        apiClient = new PipedApiClient(getContext());
+
+        // Resolve proxy URL (local WiFi or Cloudflare tunnel)
+        apiClient.resolveBaseUrl(() -> {});
 
         recyclerView = view.findViewById(R.id.recycler_search);
         searchInput = view.findViewById(R.id.search_input);

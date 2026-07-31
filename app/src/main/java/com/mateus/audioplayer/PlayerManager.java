@@ -134,7 +134,7 @@ public class PlayerManager {
         }
 
         // Resolve stream URL and play
-        PipedApiClient client = new PipedApiClient();
+        PipedApiClient client = new PipedApiClient(context);
         client.getStreamUrl(track.videoId, new PipedApiClient.StreamCallback() {
             @Override
             public void onStreamUrl(String url) {

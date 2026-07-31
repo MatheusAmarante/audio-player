@@ -1,5 +1,7 @@
 package com.mateus.audioplayer;
 
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.os.Handler;
 import android.os.Looper;
 import java.io.IOException;
@@ -15,34 +17,84 @@ import org.json.JSONObject;
 
 /**
  * Communicates with the yt-dlp proxy running on the Pi 2.
- * The proxy handles YouTube search and stream URL resolution.
+ * Tries local IP first (WiFi), falls back to Cloudflare Tunnel (4G).
  */
 public class PipedApiClient {
 
-    // Local proxy on the Pi 2
-    private static final String PROXY_BASE = "http://192.168.0.5:5000";
+    // Local proxy on the Pi 2 (WiFi)
+    private static final String PROXY_LOCAL = "http://192.168.0.5:5000";
+    // Cloudflare Tunnel URL (updated automatically)
+    private static final String PREF_TUNNEL_URL = "proxy_tunnel_url";
+    private static final String DEFAULT_TUNNEL = "https://below-removal-conservative-benz.trycloudflare.com";
 
     private final OkHttpClient client;
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
+    private final SharedPreferences prefs;
+    private String activeBaseUrl;
 
     public interface SearchCallback {
         void onResults(List<YouTubeTrack> tracks);
         void onError(String message);
     }
 
-    public PipedApiClient() {
+    public PipedApiClient(Context context) {
+        prefs = context.getSharedPreferences("yt_proxy", Context.MODE_PRIVATE);
         client = new OkHttpClient.Builder()
-            .connectTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
+            .connectTimeout(10, java.util.concurrent.TimeUnit.SECONDS)
             .readTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
             .build();
+    }
+
+    /** Resolve which proxy URL to use. Call once before search/stream. */
+    public void resolveBaseUrl(Runnable onReady) {
+        executor.execute(() -> {
+            // Try local first
+            try {
+                Request r = new Request.Builder().url(PROXY_LOCAL + "/health").build();
+                Response resp = client.newCall(r).execute();
+                if (resp.isSuccessful()) {
+                    // Local works, fetch tunnel URL for later
+                    activeBaseUrl = PROXY_LOCAL;
+                    try {
+                        Request cr = new Request.Builder().url(PROXY_LOCAL + "/config").build();
+                        Response cresp = client.newCall(cr).execute();
+                        if (cresp.isSuccessful()) {
+                            JSONObject cfg = new JSONObject(cresp.body().string());
+                            String tunnel = cfg.optString("tunnel_url", "");
+                            if (!tunnel.isEmpty()) {
+                                prefs.edit().putString(PREF_TUNNEL_URL, tunnel).apply();
+                            }
+                        }
+                    } catch (Exception ignored) {}
+                    mainHandler.post(onReady);
+                    return;
+                }
+            } catch (Exception ignored) {}
+
+            // Local failed, try saved tunnel URL
+            String tunnel = prefs.getString(PREF_TUNNEL_URL, DEFAULT_TUNNEL);
+            try {
+                Request r = new Request.Builder().url(tunnel + "/health").build();
+                Response resp = client.newCall(r).execute();
+                if (resp.isSuccessful()) {
+                    activeBaseUrl = tunnel;
+                    mainHandler.post(onReady);
+                    return;
+                }
+            } catch (Exception ignored) {}
+
+            // Last resort: default tunnel
+            activeBaseUrl = DEFAULT_TUNNEL;
+            mainHandler.post(onReady);
+        });
     }
 
     /** Search for music on YouTube via the Pi proxy */
     public void search(String query, SearchCallback callback) {
         executor.execute(() -> {
             try {
-                String url = PROXY_BASE + "/search?q=" +
+                String url = activeBaseUrl + "/search?q=" +
                     java.net.URLEncoder.encode(query, "UTF-8");
                 Request request = new Request.Builder().url(url).build();
                 Response response = client.newCall(request).execute();
@@ -75,7 +127,7 @@ public class PipedApiClient {
     public void getStreamUrl(String videoId, StreamCallback callback) {
         executor.execute(() -> {
             try {
-                String url = PROXY_BASE + "/stream?id=" + videoId;
+                String url = activeBaseUrl + "/stream?id=" + videoId;
                 Request request = new Request.Builder().url(url).build();
                 Response response = client.newCall(request).execute();
                 if (!response.isSuccessful()) {
