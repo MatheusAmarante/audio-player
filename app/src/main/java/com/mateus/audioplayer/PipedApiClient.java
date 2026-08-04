@@ -152,4 +152,70 @@ public class PipedApiClient {
         void onStreamUrl(String url);
         void onError(String message);
     }
+
+    /** Fetch trending music from the proxy */
+    public void fetchTrending(SearchCallback callback) {
+        executor.execute(() -> {
+            try {
+                String url = activeBaseUrl + "/trending";
+                Request request = new Request.Builder().url(url).build();
+                Response response = client.newCall(request).execute();
+                if (!response.isSuccessful()) {
+                    mainHandler.post(() -> callback.onError("HTTP " + response.code()));
+                    return;
+                }
+                String body = response.body().string();
+                JSONArray items = new JSONArray(body);
+                List<YouTubeTrack> tracks = new ArrayList<>();
+                for (int i = 0; i < items.length(); i++) {
+                    JSONObject item = items.getJSONObject(i);
+                    YouTubeTrack track = new YouTubeTrack();
+                    track.videoId = item.optString("videoId", "");
+                    if (track.videoId.isEmpty()) continue;
+                    track.title = item.optString("title", "Unknown");
+                    track.artist = item.optString("artist", "");
+                    track.duration = item.optLong("duration", 0);
+                    track.thumbnailUrl = item.optString("thumbnailUrl", "");
+                    tracks.add(track);
+                }
+                mainHandler.post(() -> callback.onResults(tracks));
+            } catch (Exception e) {
+                mainHandler.post(() -> callback.onError(e.getMessage()));
+            }
+        });
+    }
+
+    /** Fetch synced lyrics from the proxy */
+    public void fetchLyrics(String title, String artist, LyricsCallback callback) {
+        executor.execute(() -> {
+            try {
+                String url = activeBaseUrl + "/lyrics?title=" +
+                    java.net.URLEncoder.encode(title, "UTF-8") +
+                    "&artist=" + java.net.URLEncoder.encode(artist != null ? artist : "", "UTF-8");
+                Request request = new Request.Builder().url(url).build();
+                Response response = client.newCall(request).execute();
+                if (!response.isSuccessful()) {
+                    mainHandler.post(() -> callback.onError("HTTP " + response.code()));
+                    return;
+                }
+                String body = response.body().string();
+                JSONObject json = new JSONObject(body);
+                String synced = json.optString("synced", "");
+                String plain = json.optString("plain", "");
+                mainHandler.post(() -> callback.onLyrics(synced, plain));
+            } catch (Exception e) {
+                mainHandler.post(() -> callback.onError(e.getMessage()));
+            }
+        });
+    }
+
+    /** Get download URL for a track */
+    public String getDownloadUrl(String videoId) {
+        return activeBaseUrl + "/download/" + videoId;
+    }
+
+    public interface LyricsCallback {
+        void onLyrics(String synced, String plain);
+        void onError(String message);
+    }
 }

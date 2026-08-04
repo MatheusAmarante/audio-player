@@ -1,336 +1,302 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
     android:background="#0d1117"
     android:fitsSystemWindows="true">
 
-    <!-- Top bar -->
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="56dp"
-        android:gravity="center_vertical"
-        android:paddingStart="8dp"
-        android:paddingEnd="16dp"
-        android:background="#0d1117">
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingBottom="32dp">
 
-        <ImageButton
-            android:id="@+id/full_back"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:src="@android:drawable/ic_menu_revert"
-            android:background="?android:attr/selectableItemBackgroundBorderless"
-            android:contentDescription="Back" />
+        <!-- Top bar -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:gravity="center_vertical"
+            android:paddingStart="8dp"
+            android:paddingEnd="16dp"
+            android:background="#0d1117">
 
+            <ImageButton
+                android:id="@+id/full_back"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:src="@android:drawable/ic_menu_revert"
+                android:background="?android:attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Back" />
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Now Playing"
+                android:textColor="#e6e6e6"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+
+            <ImageButton
+                android:id="@+id/full_download"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:src="@android:drawable/stat_sys_download"
+                android:background="?android:attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Download" />
+
+            <ImageButton
+                android:id="@+id/full_lyrics"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:src="@android:drawable/ic_menu_info_details"
+                android:background="?android:attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Lyrics" />
+
+        </LinearLayout>
+
+        <!-- Album art -->
+        <ImageView
+            android:id="@+id/full_thumbnail"
+            android:layout_width="280dp"
+            android:layout_height="280dp"
+            android:layout_gravity="center"
+            android:layout_marginTop="16dp"
+            android:scaleType="centerCrop"
+            android:background="#1a1a2e" />
+
+        <!-- Track info -->
         <TextView
-            android:layout_width="0dp"
+            android:id="@+id/full_title"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="Now Playing"
+            android:layout_marginTop="16dp"
+            android:layout_marginStart="24dp"
+            android:layout_marginEnd="24dp"
             android:textColor="#e6e6e6"
-            android:textSize="18sp"
-            android:textStyle="bold" />
-
-    </LinearLayout>
-
-    <!-- Album art placeholder -->
-    <ImageView
-        android:id="@+id/full_thumbnail"
-        android:layout_width="280dp"
-        android:layout_height="280dp"
-        android:layout_gravity="center"
-        android:layout_marginTop="24dp"
-        android:scaleType="centerCrop"
-        android:background="#1a1a2e" />
-
-    <!-- Track info -->
-    <TextView
-        android:id="@+id/full_title"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="20dp"
-        android:layout_marginStart="24dp"
-        android:layout_marginEnd="24dp"
-        android:textColor="#e6e6e6"
-        android:textSize="20sp"
-        android:textStyle="bold"
-        android:maxLines="2"
-        android:ellipsize="end"
-        android:gravity="center" />
-
-    <TextView
-        android:id="@+id/full_artist"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:layout_marginStart="24dp"
-        android:layout_marginEnd="24dp"
-        android:textColor="#8b8b9e"
-        android:textSize="15sp"
-        android:maxLines="1"
-        android:ellipsize="end"
-        android:gravity="center" />
-
-    <!-- SeekBar -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="20dp"
-        android:layout_marginStart="16dp"
-        android:layout_marginEnd="16dp"
-        android:orientation="horizontal"
-        android:gravity="center_vertical">
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:maxLines="2"
+            android:ellipsize="end"
+            android:gravity="center" />
 
         <TextView
-            android:id="@+id/full_current_time"
-            android:layout_width="48dp"
+            android:id="@+id/full_artist"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="00:00"
+            android:layout_marginTop="4dp"
+            android:layout_marginStart="24dp"
+            android:layout_marginEnd="24dp"
             android:textColor="#8b8b9e"
-            android:textSize="12sp" />
+            android:textSize="15sp"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:gravity="center" />
 
-        <SeekBar
-            android:id="@+id/full_seekbar"
-            android:layout_width="0dp"
+        <!-- SeekBar -->
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:layout_marginStart="8dp"
-            android:layout_marginEnd="8dp"
-            android:progressTint="#1e40af"
-            android:thumbTint="#1e40af" />
+            android:layout_marginTop="16dp"
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="16dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
 
-        <TextView
-            android:id="@+id/full_total_time"
-            android:layout_width="48dp"
+            <TextView
+                android:id="@+id/full_current_time"
+                android:layout_width="48dp"
+                android:layout_height="wrap_content"
+                android:text="00:00"
+                android:textColor="#8b8b9e"
+                android:textSize="12sp" />
+
+            <SeekBar
+                android:id="@+id/full_seekbar"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="8dp"
+                android:layout_marginEnd="8dp"
+                android:progressTint="#1e40af"
+                android:thumbTint="#1e40af" />
+
+            <TextView
+                android:id="@+id/full_total_time"
+                android:layout_width="48dp"
+                android:layout_height="wrap_content"
+                android:text="00:00"
+                android:textColor="#8b8b9e"
+                android:textSize="12sp"
+                android:gravity="end" />
+
+        </LinearLayout>
+
+        <!-- Controls -->
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="00:00"
-            android:textColor="#8b8b9e"
-            android:textSize="12sp"
-            android:gravity="end" />
-
-    </LinearLayout>
-
-    <!-- Controls -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:gravity="center"
-        android:orientation="horizontal">
-
-        <ImageButton
-            android:id="@+id/full_shuffle"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:src="@android:drawable/ic_menu_sort_alphabetically"
-            android:background="?android:attr/selectableItemBackgroundBorderless"
-            android:contentDescription="Shuffle" />
-
-        <ImageButton
-            android:id="@+id/full_prev"
-            android:layout_width="56dp"
-            android:layout_height="56dp"
-            android:src="@android:drawable/ic_media_previous"
-            android:background="?android:attr/selectableItemBackgroundBorderless"
-            android:contentDescription="Previous" />
-
-        <ImageButton
-            android:id="@+id/full_play_pause"
-            android:layout_width="64dp"
-            android:layout_height="64dp"
-            android:src="@android:drawable/ic_media_play"
-            android:background="@drawable/play_btn_bg"
-            android:contentDescription="Play/Pause" />
-
-        <ImageButton
-            android:id="@+id/full_next"
-            android:layout_width="56dp"
-            android:layout_height="56dp"
-            android:src="@android:drawable/ic_media_next"
-            android:background="?android:attr/selectableItemBackgroundBorderless"
-            android:contentDescription="Next" />
-
-        <ImageButton
-            android:id="@+id/full_repeat"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:src="@android:drawable/ic_menu_rotate"
-            android:background="?android:attr/selectableItemBackgroundBorderless"
-            android:contentDescription="Repeat" />
-
-    </LinearLayout>
-
-    <!-- Speed & Sleep row -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:gravity="center"
-        android:orientation="horizontal">
-
-        <TextView
-            android:id="@+id/full_speed_label"
-            android:layout_width="wrap_content"
-            android:layout_height="32dp"
+            android:layout_marginTop="12dp"
             android:gravity="center"
-            android:paddingStart="12dp"
-            android:paddingEnd="12dp"
-            android:text="1.00x"
-            android:textColor="#1e40af"
-            android:textSize="13sp"
-            android:clickable="true"
-            android:focusable="true"
-            android:background="@drawable/search_bg" />
+            android:orientation="horizontal">
 
-        <TextView
-            android:id="@+id/full_sleep_countdown"
-            android:layout_width="wrap_content"
-            android:layout_height="32dp"
-            android:layout_marginStart="12dp"
+            <ImageButton
+                android:id="@+id/full_shuffle"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:src="@android:drawable/ic_menu_sort_alphabetically"
+                android:background="?android:attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Shuffle" />
+
+            <ImageButton
+                android:id="@+id/full_prev"
+                android:layout_width="56dp"
+                android:layout_height="56dp"
+                android:src="@android:drawable/ic_media_previous"
+                android:background="?android:attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Previous" />
+
+            <ImageButton
+                android:id="@+id/full_play_pause"
+                android:layout_width="64dp"
+                android:layout_height="64dp"
+                android:src="@android:drawable/ic_media_play"
+                android:background="@drawable/play_btn_bg"
+                android:contentDescription="Play/Pause" />
+
+            <ImageButton
+                android:id="@+id/full_next"
+                android:layout_width="56dp"
+                android:layout_height="56dp"
+                android:src="@android:drawable/ic_media_next"
+                android:background="?android:attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Next" />
+
+            <ImageButton
+                android:id="@+id/full_repeat"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:src="@android:drawable/ic_menu_rotate"
+                android:background="?android:attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Repeat" />
+
+        </LinearLayout>
+
+        <!-- Speed & Sleep row -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
             android:gravity="center"
-            android:paddingStart="12dp"
-            android:paddingEnd="12dp"
-            android:textColor="#8b8b9e"
-            android:textSize="13sp"
-            android:clickable="true"
-            android:focusable="true"
-            android:background="@drawable/search_bg" />
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/full_speed_label"
+                android:layout_width="wrap_content"
+                android:layout_height="32dp"
+                android:gravity="center"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:text="1.00x"
+                android:textColor="#1e40af"
+                android:textSize="13sp"
+                android:clickable="true"
+                android:focusable="true"
+                android:background="@drawable/search_bg" />
+
+            <TextView
+                android:id="@+id/full_sleep_countdown"
+                android:layout_width="wrap_content"
+                android:layout_height="32dp"
+                android:layout_marginStart="12dp"
+                android:gravity="center"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:text="Sleep"
+                android:textColor="#8b8b9e"
+                android:textSize="13sp"
+                android:clickable="true"
+                android:focusable="true"
+                android:background="@drawable/search_bg" />
+
+        </LinearLayout>
+
+        <!-- Speed panel -->
+        <LinearLayout
+            android:id="@+id/full_speed_panel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:gravity="center"
+            android:orientation="horizontal"
+            android:visibility="gone">
+
+            <TextView android:id="@+id/full_speed_05" android:layout_width="wrap_content" android:layout_height="wrap_content" android:padding="8dp" android:text="0.5x" android:textColor="#8b8b9e" android:textSize="13sp" android:clickable="true" android:focusable="true" />
+            <TextView android:id="@+id/full_speed_075" android:layout_width="wrap_content" android:layout_height="wrap_content" android:padding="8dp" android:text="0.75x" android:textColor="#8b8b9e" android:textSize="13sp" android:clickable="true" android:focusable="true" />
+            <TextView android:id="@+id/full_speed_1" android:layout_width="wrap_content" android:layout_height="wrap_content" android:padding="8dp" android:text="1x" android:textColor="#1e40af" android:textSize="13sp" android:clickable="true" android:focusable="true" />
+            <TextView android:id="@+id/full_speed_125" android:layout_width="wrap_content" android:layout_height="wrap_content" android:padding="8dp" android:text="1.25x" android:textColor="#8b8b9e" android:textSize="13sp" android:clickable="true" android:focusable="true" />
+            <TextView android:id="@+id/full_speed_15" android:layout_width="wrap_content" android:layout_height="wrap_content" android:padding="8dp" android:text="1.5x" android:textColor="#8b8b9e" android:textSize="13sp" android:clickable="true" android:focusable="true" />
+            <TextView android:id="@+id/full_speed_2" android:layout_width="wrap_content" android:layout_height="wrap_content" android:padding="8dp" android:text="2x" android:textColor="#8b8b9e" android:textSize="13sp" android:clickable="true" android:focusable="true" />
+
+        </LinearLayout>
+
+        <!-- Sleep panel -->
+        <LinearLayout
+            android:id="@+id/full_sleep_panel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:gravity="center"
+            android:orientation="horizontal"
+            android:visibility="gone">
+
+            <TextView android:id="@+id/full_sleep_15" android:layout_width="wrap_content" android:layout_height="wrap_content" android:padding="8dp" android:text="15m" android:textColor="#8b8b9e" android:textSize="13sp" android:clickable="true" android:focusable="true" />
+            <TextView android:id="@+id/full_sleep_30" android:layout_width="wrap_content" android:layout_height="wrap_content" android:padding="8dp" android:text="30m" android:textColor="#8b8b9e" android:textSize="13sp" android:clickable="true" android:focusable="true" />
+            <TextView android:id="@+id/full_sleep_60" android:layout_width="wrap_content" android:layout_height="wrap_content" android:padding="8dp" android:text="1h" android:textColor="#8b8b9e" android:textSize="13sp" android:clickable="true" android:focusable="true" />
+            <TextView android:id="@+id/full_sleep_off" android:layout_width="wrap_content" android:layout_height="wrap_content" android:padding="8dp" android:text="Off" android:textColor="#e74c3c" android:textSize="13sp" android:clickable="true" android:focusable="true" />
+
+        </LinearLayout>
+
+        <!-- Lyrics panel -->
+        <LinearLayout
+            android:id="@+id/full_lyrics_panel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="16dp"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="📝 Lyrics"
+                android:textColor="#1e40af"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:paddingBottom="8dp" />
+
+            <ScrollView
+                android:id="@+id/full_lyrics_scroll"
+                android:layout_width="match_parent"
+                android:layout_height="200dp"
+                android:background="#161b22"
+                android:padding="12dp">
+
+                <TextView
+                    android:id="@+id/full_lyrics_text"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textColor="#c9d1d9"
+                    android:textSize="14sp"
+                    android:lineSpacingExtra="4dp"
+                    android:text="Loading lyrics..." />
+
+            </ScrollView>
+
+        </LinearLayout>
 
     </LinearLayout>
 
-    <!-- Speed panel -->
-    <LinearLayout
-        android:id="@+id/full_speed_panel"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
-        android:gravity="center"
-        android:orientation="horizontal"
-        android:visibility="gone">
-
-        <TextView
-            android:id="@+id/full_speed_05"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:padding="8dp"
-            android:text="0.5x"
-            android:textColor="#8b8b9e"
-            android:textSize="13sp"
-            android:clickable="true"
-            android:focusable="true" />
-
-        <TextView
-            android:id="@+id/full_speed_075"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:padding="8dp"
-            android:text="0.75x"
-            android:textColor="#8b8b9e"
-            android:textSize="13sp"
-            android:clickable="true"
-            android:focusable="true" />
-
-        <TextView
-            android:id="@+id/full_speed_1"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:padding="8dp"
-            android:text="1x"
-            android:textColor="#1e40af"
-            android:textSize="13sp"
-            android:clickable="true"
-            android:focusable="true" />
-
-        <TextView
-            android:id="@+id/full_speed_125"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:padding="8dp"
-            android:text="1.25x"
-            android:textColor="#8b8b9e"
-            android:textSize="13sp"
-            android:clickable="true"
-            android:focusable="true" />
-
-        <TextView
-            android:id="@+id/full_speed_15"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:padding="8dp"
-            android:text="1.5x"
-            android:textColor="#8b8b9e"
-            android:textSize="13sp"
-            android:clickable="true"
-            android:focusable="true" />
-
-        <TextView
-            android:id="@+id/full_speed_2"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:padding="8dp"
-            android:text="2x"
-            android:textColor="#8b8b9e"
-            android:textSize="13sp"
-            android:clickable="true"
-            android:focusable="true" />
-
-    </LinearLayout>
-
-    <!-- Sleep panel -->
-    <LinearLayout
-        android:id="@+id/full_sleep_panel"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:gravity="center"
-        android:orientation="horizontal"
-        android:visibility="gone">
-
-        <TextView
-            android:id="@+id/full_sleep_15"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:padding="8dp"
-            android:text="15m"
-            android:textColor="#8b8b9e"
-            android:textSize="13sp"
-            android:clickable="true"
-            android:focusable="true" />
-
-        <TextView
-            android:id="@+id/full_sleep_30"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:padding="8dp"
-            android:text="30m"
-            android:textColor="#8b8b9e"
-            android:textSize="13sp"
-            android:clickable="true"
-            android:focusable="true" />
-
-        <TextView
-            android:id="@+id/full_sleep_60"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:padding="8dp"
-            android:text="1h"
-            android:textColor="#8b8b9e"
-            android:textSize="13sp"
-            android:clickable="true"
-            android:focusable="true" />
-
-        <TextView
-            android:id="@+id/full_sleep_off"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:padding="8dp"
-            android:text="Off"
-            android:textColor="#e74c3c"
-            android:textSize="13sp"
-            android:clickable="true"
-            android:focusable="true" />
-
-    </LinearLayout>
-
-</LinearLayout>
+</ScrollView>

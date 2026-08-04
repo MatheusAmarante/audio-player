@@ -79,11 +79,14 @@ public class MainActivity extends AppCompatActivity {
 
             bottomNav.setOnItemSelectedListener(item -> {
                 int id = item.getItemId();
-                if (id == R.id.nav_search) {
+                if (id == R.id.nav_home) {
                     viewPager.setCurrentItem(0, true);
                     return true;
-                } else if (id == R.id.nav_playlists) {
+                } else if (id == R.id.nav_search) {
                     viewPager.setCurrentItem(1, true);
+                    return true;
+                } else if (id == R.id.nav_playlists) {
+                    viewPager.setCurrentItem(2, true);
                     return true;
                 }
                 return false;

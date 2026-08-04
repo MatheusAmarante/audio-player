@@ -15,14 +15,15 @@ public class ViewPagerAdapter extends FragmentStateAdapter {
     @Override
     public Fragment createFragment(int position) {
         switch (position) {
-            case 0: return new SearchFragment();
-            case 1: return new PlaylistsFragment();
-            default: return new SearchFragment();
+            case 0: return new HomeFragment();
+            case 1: return new SearchFragment();
+            case 2: return new PlaylistsFragment();
+            default: return new HomeFragment();
         }
     }
 
     @Override
     public int getItemCount() {
-        return 2;
+        return 3;
     }
 }
